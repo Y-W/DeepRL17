@@ -100,3 +100,5 @@ class Train:
                 self.save_model()
             if self.update_cnt < self.total_updates:
                 self.update()
+            if self.update_cnt == self.total_updates:
+                break
