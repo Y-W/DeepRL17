@@ -22,7 +22,7 @@ tf.app.flags.DEFINE_integer('batches_per_udpate', 1, 'Number of batches per upda
 tf.app.flags.DEFINE_integer('init_game_batches', 0, 'Number of game batches to run before everything')
 tf.app.flags.DEFINE_integer('updates_per_ckpt', 1000, 'Number of updates per checkpoint')
 tf.app.flags.DEFINE_integer('full_eval', 10, 'Number of full evals')
-tf.app.flags.DEFINE_string('output_dir', None, 'Output directory')
+tf.app.flags.DEFINE_string('output_dir', 'outputs/q2', 'Output directory')
 
 def main(argv=None):
     assert FLAGS.output_dir is not None

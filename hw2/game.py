@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 import numpy as np
 import scipy.misc
 import gym
@@ -9,21 +10,25 @@ from util import list2NumpyBatches, numpyBatches2list
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('game', 'SpaceInvaders-v0', 'Atari game to use')
+tf.app.flags.DEFINE_integer('process', 4, 'Number of processes to use')
 
 downsampled_frame_size = 84
 past_frame_number = 4
 
-compress_frame = lambda f: np.mean(scipy.misc.imresize(f, (downsampled_frame_size, downsampled_frame_size)).astype(np.float32) * (1.0 / 255.0), axis=2)
-clip_reward = lambda x: float(min(max(x, -1.0), 1.0))
+def compress_frame(f):
+    return np.mean(scipy.misc.imresize(f, (downsampled_frame_size, downsampled_frame_size)).astype(np.float32) * (1.0 / 255.0), axis=2)
+
+def clip_reward(x):
+    return float(min(max(x, -1.0), 1.0))
 
 
 class AtariGame:
-    def __init__(self, auto_restart, should_clip_reward, record_dir=None):
+    def __init__(self, game_name, auto_restart, should_clip_reward, record_dir=None):
         self.auto_restart = auto_restart
         self.record_dir = record_dir
         self.should_clip_reward = should_clip_reward
         self.past_frames = np.zeros((past_frame_number, downsampled_frame_size, downsampled_frame_size), dtype=np.float32)
-        self.env = gym.make(FLAGS.game)
+        self.env = gym.make(game_name)
         if record_dir is not None:
             self.env = gym.wrappers.Monitor(self.env, record_dir, force=True)
         self.terminated = False
@@ -71,10 +76,10 @@ class AtariGame:
 
 
 class GameBatch:
-    def __init__(self, size, auto_restart, should_clip_reward):
+    def __init__(self, game_name, size, auto_restart, should_clip_reward):
         self.size = size
         self.auto_restart = auto_restart
-        self.games = [AtariGame(auto_restart, should_clip_reward) for _ in xrange(self.size)]
+        self.games = [AtariGame(game_name, auto_restart, should_clip_reward) for _ in xrange(self.size)]
         self.action_n = self.games[0].action_n
         self.state_shape = self.games[0].state_shape
 
@@ -83,6 +88,27 @@ class GameBatch:
 
     def take_action(self, actions):
         return [game.take_action(action) if action is not None else None for game, action in zip(self.games, actions)]
+
+#TODO finish this!
+class GameBatch_ParallelWorker(multiprocessing.Process):
+    def __init__(self, command_pipe, return_pipe, game_name, size, auto_restart, should_clip_reward):
+        super(GameBatch_ParallelWorker, self).__init__(self)
+        self.command_pipe = command_pipe
+        self.return_pipe = return_pipe
+        self.game_batch = GameBatch(game_name, size, auto_restart, should_clip_reward)
+
+    def run(self):
+        while True:
+            action = self.pipe.recv()
+            _, reward, done, _ = self.env.step(action)
+            observation = self.env.render(mode="rgb_array")
+            self.pipe.send((observation, reward, done))
+            if done:
+                print "Done with an epsidode for %s" % self.name
+                self.env.reset()
+
+class GameBatch_Parallel:
+
 
 
 class GameEngine_Train:
@@ -135,7 +161,7 @@ class GameEngine_Recorded:
     def __init__(self, record_dir):
         if not os.path.exists(record_dir):
             os.makedirs(record_dir)
-        self.game = AtariGame(False, False, record_dir=record_dir)
+        self.game = AtariGame(FLAGS.game, False, False, record_dir=record_dir)
     def __call__(self, actioner_fn, actioner_batch_size):
         while True:
             ob = self.game.get_ob()

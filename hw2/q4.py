@@ -22,7 +22,7 @@ tf.app.flags.DEFINE_integer('batches_per_udpate', 1000, 'Number of batches per u
 tf.app.flags.DEFINE_integer('updates_per_ckpt', 1, 'Number of updates per checkpoint')
 tf.app.flags.DEFINE_integer('replay_limit_updates', 10, 'Limit for experience replay')
 tf.app.flags.DEFINE_integer('full_eval', 5, 'Number of full evals')
-tf.app.flags.DEFINE_string('output_dir', None, 'Output directory')
+tf.app.flags.DEFINE_string('output_dir', 'outputs/q4', 'Output directory')
 
 def main(argv=None):
     assert FLAGS.output_dir is not None

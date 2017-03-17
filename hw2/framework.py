@@ -26,7 +26,7 @@ class FullEval:
         GameEngine_Recorded(self.record_dir)(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size)
         return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size))
 
-
+#TODO log to file!
 class Train:
     def __init__(self,
                  q,
