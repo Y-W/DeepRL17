@@ -12,11 +12,15 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('game', 'SpaceInvaders-v0', 'Atari game to use')
 tf.app.flags.DEFINE_integer('process', 4, 'Number of processes to use')
 
-downsampled_frame_size = 84
+downsampled_frame_size = (110, 84)
+final_processed_size = 84
 past_frame_number = 4
 
 def compress_frame(f):
-    return np.mean(scipy.misc.imresize(f, (downsampled_frame_size, downsampled_frame_size)).astype(np.float32) * (1.0 / 255.0), axis=2)
+    f = np.mean(f, axis=2).astype(np.uint8)
+    f = scipy.misc.imresize(f, downsampled_frame_size)
+    f = f[13:97, :]
+    return f.astype(np.float32) * (1.0 / 255.0)
 
 def clip_reward(x):
     return float(min(max(x, -1.0), 1.0))
@@ -27,17 +31,17 @@ class AtariGame:
         self.auto_restart = auto_restart
         self.record_dir = record_dir
         self.should_clip_reward = should_clip_reward
-        self.past_frames = np.zeros((past_frame_number, downsampled_frame_size, downsampled_frame_size), dtype=np.float32)
+        self.past_frames = np.zeros((past_frame_number, final_processed_size, final_processed_size), dtype=np.float32)
         self.env = gym.make(game_name)
         if record_dir is not None:
             self.env = gym.wrappers.Monitor(self.env, record_dir, force=True)
         self.terminated = False
         self.past_frames[-1] = compress_frame(self.env.reset())
         self.action_n = self.env.action_space.n
-        self.state_shape = (past_frame_number, downsampled_frame_size, downsampled_frame_size)
+        self.state_shape = (past_frame_number, final_processed_size, final_processed_size)
 
     def reset(self):
-        self.past_frames = np.zeros((past_frame_number, downsampled_frame_size, downsampled_frame_size), dtype=np.float32)
+        self.past_frames = np.zeros((past_frame_number, final_processed_size, final_processed_size), dtype=np.float32)
         self.past_frames[-1] = compress_frame(self.env.reset())
         self.terminated = False
 
