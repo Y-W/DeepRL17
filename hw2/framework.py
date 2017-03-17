@@ -62,17 +62,17 @@ class Train:
 
     def light_eval(self):
         self.light_stats_dict[self.update_cnt] = LightEval(self.q)()
-        print current_time() + ('Iter=%i - Light Eval - ' % self.update_cnt) + stats_str(self.light_stats_dict[self.update_cnt])
+        self.info_log(current_time() + ('Iter=%i - Light Eval - ' % self.update_cnt) + stats_str(self.light_stats_dict[self.update_cnt]))
 
     def full_eval(self):
         self.full_stats_dict[self.update_cnt] = FullEval(self.q, os.path.join(self.output_dir, 'video-%i' % self.update_cnt))()
-        print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + stats_str(self.full_stats_dict[self.update_cnt])
+        self.info_log(current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + stats_str(self.full_stats_dict[self.update_cnt]))
     
     def update(self):
         for _ in xrange(self.game_batches_per_update):
             self.pool.extend(self.game(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size))
         self.q.update_learner(self.pool.sample, self.sample_batches_per_update, self.decay)
-        # print current_time() + ('Iter=%i - Updated' % self.update_cnt)
+        # self.info_log( current_time() + ('Iter=%i - Updated' % self.update_cnt) )
         self.update_cnt += 1
     
     def init_process(self):
@@ -84,6 +84,10 @@ class Train:
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
         self.q.save(model_dir)
+
+    def info_log(self, s):
+        with open(os.path.join(self.output_dir, 'log.txt'), 'a') as f:
+            print >>f, s
 
     def __call__(self):
         self.init_process()

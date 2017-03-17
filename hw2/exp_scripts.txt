@@ -1,11 +1,11 @@
 Game: SpaceInvaders-v0
 
 q2:
-python q2.py --output_dir=outputs/q2 > outputs/q2/log.txt
+python q2.py
 q3:
-python q3.py --output_dir=outputs/q3 > outputs/q3/log.txt
+python q3.py
 q4:
-python q4.py --output_dir=outputs/q4 > outputs/q4/log.txt
+python q4.py
 q5:
 
 q6:

@@ -88,33 +88,86 @@ class GameBatch:
 
     def take_action(self, actions):
         return [game.take_action(action) if action is not None else None for game, action in zip(self.games, actions)]
+    
+    def close(self):
+        for game in self.games:
+            game.close()
 
-#TODO finish this!
+
 class GameBatch_ParallelWorker(multiprocessing.Process):
-    def __init__(self, command_pipe, return_pipe, game_name, size, auto_restart, should_clip_reward):
-        super(GameBatch_ParallelWorker, self).__init__(self)
-        self.command_pipe = command_pipe
-        self.return_pipe = return_pipe
+    def __init__(self, pipe, game_name, size, auto_restart, should_clip_reward):
+        super(GameBatch_ParallelWorker, self).__init__()
+        self.pipe = pipe
         self.game_batch = GameBatch(game_name, size, auto_restart, should_clip_reward)
 
     def run(self):
         while True:
-            action = self.pipe.recv()
-            _, reward, done, _ = self.env.step(action)
-            observation = self.env.render(mode="rgb_array")
-            self.pipe.send((observation, reward, done))
-            if done:
-                print "Done with an epsidode for %s" % self.name
-                self.env.reset()
+            command = self.pipe.recv()
+            if command == ():
+                self.pipe.send(self.game_batch.get_ob())
+            elif command == None:
+                self.game_batch.close()
+                break
+            else:
+                self.pipe.send(self.game_batch.take_action(command))
 
 class GameBatch_Parallel:
+    def __init__(self, size, auto_restart, should_clip_reward):
+        self.size = size
+        self.auto_restart = auto_restart
+        self.should_clip_reward = should_clip_reward
 
+        sample_game = AtariGame(FLAGS.game, auto_restart, should_clip_reward)
+        self.state_shape = sample_game.state_shape
+        self.action_n = sample_game.action_n
+        sample_game.close()
+
+        self.partition = []
+        self.workers = []
+        self.pipes = []
+        for k in xrange(FLAGS.process):
+            tmp_size = (size + FLAGS.process - 1 - k) // FLAGS.process
+            self.partition.append(tmp_size)
+            parent_conn, child_conn = multiprocessing.Pipe()
+            self.pipes.append(parent_conn)
+            worker = GameBatch_ParallelWorker(child_conn, FLAGS.game, tmp_size, auto_restart, should_clip_reward)
+            worker.start()
+            self.workers.append(worker)
+    
+    def get_ob(self):
+        for p in self.pipes:
+            p.send(())
+        result = []
+        for p in self.pipes:
+            result.extend(p.recv())
+        return result
+
+    def take_action(self, actions):
+        cnt = 0
+        for i in xrange(len(self.workers)):
+            action_sublist = tuple(actions[cnt:cnt+self.partition[i]])
+            self.pipes[i].send(action_sublist)
+            cnt += self.partition[i]
+        assert cnt == self.size
+        result = []
+        for p in self.pipes:
+            result.extend(p.recv())
+        return result
+    
+    def close(self):
+        for p in self.pipes:
+            p.send(None)
+        for w in self.workers:
+            w.join()
+    
+    def __del__(self):
+        self.close()
 
 
 class GameEngine_Train:
     def __init__(self, size):
         self.size = size
-        self.game_batch = GameBatch(size, True, True)
+        self.game_batch = GameBatch_Parallel(size, True, True)
 
     def __call__(self, actioner_fn, actioner_batch_size):
         states = self.game_batch.get_ob()
@@ -129,7 +182,7 @@ class GameEngine_Eval:
     def __init__(self, size, decay=1.0):
         self.size = size
         self.decay = decay
-        self.game_batch = GameBatch(size, False, False)
+        self.game_batch = GameBatch_Parallel(size, False, False)
     
     def __call__(self, actioner_fn, actioner_batch_size):
         total_score = [0.0] * self.size
@@ -154,6 +207,7 @@ class GameEngine_Eval:
             obs = self.game_batch.get_ob()
             current_factor *= self.decay
             cnt_step += 1
+        self.game_batch.close()
         return total_score
 
 
