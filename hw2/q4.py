@@ -49,7 +49,7 @@ def main(argv=None):
     updates_per_full_eval = FLAGS.total_updates // FLAGS.full_eval
     train = Train(q, pool, game_engine, FLAGS.decay, FLAGS.batches_per_udpate,
                   FLAGS.batches_per_udpate, FLAGS.batches_per_udpate, FLAGS.updates_per_ckpt, 
-                  updates_per_full_eval, FLAGS.updates_per_ckpt, FLAGS.total_updates, FLAGS.output_dir)
+                  updates_per_full_eval, updates_per_full_eval, FLAGS.total_updates, FLAGS.output_dir)
     
     train()
 
