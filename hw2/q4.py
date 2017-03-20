@@ -20,7 +20,7 @@ tf.app.flags.DEFINE_integer('batches_per_udpate', 1024, 'Number of batches per u
 tf.app.flags.DEFINE_integer('replay_limit_updates', 8, 'Limit for experience replay')
 tf.app.flags.DEFINE_integer('light_eval', 100, 'Number of light evals')
 tf.app.flags.DEFINE_integer('full_eval', 10, 'Number of full evals')
-tf.app.flags.DEFINE_string('output_dir', 'outputs/q3', 'Output directory')
+tf.app.flags.DEFINE_string('output_dir', 'outputs/q4', 'Output directory')
 
 def main(argv=None):
     logging.disable(logging.INFO)
