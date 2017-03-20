@@ -11,12 +11,12 @@ from framework import Train
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch', 32, 'Batch size')
-tf.app.flags.DEFINE_integer('total_updates', 500, 'Number of training updates')
+tf.app.flags.DEFINE_integer('total_updates', 100, 'Number of training updates')
 tf.app.flags.DEFINE_float('learning_rate_initial', 1e-1, 'Initial learning rate')
 tf.app.flags.DEFINE_float('learning_rate_final', 1e-2, 'Final learning rate')
 tf.app.flags.DEFINE_float('decay', 0.99, 'Decay factor')
 tf.app.flags.DEFINE_integer('batches_per_udpate', 1024, 'Number of batches per update')
-tf.app.flags.DEFINE_integer('replay_limit_updates', 32, 'Limit for experience replay')
+tf.app.flags.DEFINE_integer('replay_limit_updates', 8, 'Limit for experience replay')
 tf.app.flags.DEFINE_integer('light_eval', 100, 'Number of light evals')
 tf.app.flags.DEFINE_integer('full_eval', 10, 'Number of full evals')
 tf.app.flags.DEFINE_string('output_dir', 'outputs/q3', 'Output directory')

@@ -85,14 +85,13 @@ class Train:
             f.flush()
 
     def __call__(self):
-        while self.update_cnt <= self.total_updates:
+        self.save_model()
+        self.full_eval()
+        while self.update_cnt < self.total_updates:
+            self.update()
             if self.update_cnt % self.updates_per_light_eval == 0:
                 self.light_eval()
             if self.update_cnt % self.updates_per_full_eval == 0 or self.update_cnt == self.total_updates:
                 self.full_eval()
             if self.update_cnt % self.updates_per_save == 0 or self.update_cnt == self.total_updates:
                 self.save_model()
-            if self.update_cnt < self.total_updates:
-                self.update()
-            if self.update_cnt == self.total_updates:
-                break
