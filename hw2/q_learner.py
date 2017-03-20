@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+
+#TODO gradient clipping - huber loss
 class Learner:
     def __init__(self, state_shape, action_n, batch_size, learning_rate):
         raise NotImplementedError()
@@ -22,7 +24,7 @@ class Q:
     def __init__(self, learner, state_shape, action_n, batch_size):
         raise NotImplementedError()
 
-    def get_batch_actioner(self, epsilon):
+    def get_batch_actioner(self):
         raise NotImplementedError()
     
     def update_learner(self, sampler, batch_num, decay):
@@ -42,19 +44,13 @@ class SimpleQ(Q):
         self.action_n = learner.action_n
         self.batch_size = learner.batch_size
     
-    def get_batch_actioner(self, epsilon):
+    def get_batch_actioner(self):
         class Actioner:
-            def __init__(self, learner_eval, epsilon, action_n, batch_size):
+            def __init__(self, learner_eval):
                 self.learner_eval = learner_eval
-                self.epsilon = epsilon
-                self.action_n = action_n
-                self.batch_size = batch_size
             def __call__(self, input_batch):
-                uniform_act = np.random.randint(self.action_n, size=self.batch_size)
-                best_act = np.argmax(self.learner_eval(input_batch), axis=1)
-                return np.choose(np.random.binomial(1, self.epsilon, size=self.batch_size),
-                                 (best_act, uniform_act))
-        return Actioner(self.learner.eval_batch, epsilon, self.action_n, self.batch_size)
+                return np.argmax(self.learner_eval(input_batch), axis=1)
+        return Actioner(self.learner.eval_batch)
     
     def update_learner(self, sampler, batch_num, decay):
         inputs = []
@@ -98,20 +94,14 @@ class DoubleQ(Q):
         self.action_n = learner1.action_n
         self.batch_size = learner1.batch_size
 
-    def get_batch_actioner(self, epsilon):
+    def get_batch_actioner(self):
         class Actioner:
-            def __init__(self, learner_eval1, learner_eval2, epsilon, action_n, batch_size):
+            def __init__(self, learner_eval1, learner_eval2):
                 self.learner_eval1 = learner_eval1
                 self.learner_eval2 = learner_eval2
-                self.epsilon = epsilon
-                self.action_n = action_n
-                self.batch_size = batch_size
             def __call__(self, input_batch):
-                uniform_act = np.random.randint(self.action_n, size=self.batch_size)
-                best_act = np.argmax(self.learner_eval1(input_batch) + self.learner_eval2(input_batch), axis=1)
-                return np.choose(np.random.binomial(1, self.epsilon, size=self.batch_size),
-                                 (best_act, uniform_act))
-        return Actioner(self.learner1.eval_batch, self.learner2.eval_batch, epsilon, self.action_n, self.batch_size)
+                return np.argmax(self.learner_eval1(input_batch) + self.learner_eval2(input_batch), axis=1)
+        return Actioner(self.learner1.eval_batch, self.learner2.eval_batch)
     
     def update_learner(self, sampler, batch_num, decay):
         for _ in xrange(batch_num):

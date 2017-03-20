@@ -2,19 +2,16 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from game import GameEngine_Eval, GameEngine_Recorded, GameEngine_Train
+from game_replay_parallel import GameEngine_Eval, GameEngine_Recorded, GameEngine_Train
 from util import stats, stats_str, current_time
 
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_float('epsilon', 0.05, 'Epsilon')
 
 class LightEval:
     def __init__(self, q, size=20):
         self.q = q
         self.size = size
     def __call__(self):
-        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size))
+        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(), self.q.batch_size))
 
 
 class FullEval:
@@ -23,17 +20,15 @@ class FullEval:
         self.size = size
         self.record_dir = record_dir
     def __call__(self):
-        GameEngine_Recorded(self.record_dir)(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size)
-        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size))
+        GameEngine_Recorded(self.record_dir)(self.q.get_batch_actioner(), self.q.batch_size)
+        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(), self.q.batch_size))
 
-#TODO log to file!
+
 class Train:
     def __init__(self,
                  q,
-                 pool,
                  game_engine,
                  decay,
-                 init_game_batches,
                  game_batches_per_update,
                  sample_batches_per_update,
                  updates_per_light_eval,
@@ -41,11 +36,10 @@ class Train:
                  updates_per_save,
                  total_updates,
                  output_dir,
+                 use_last_trans_only=False
                 ):
         self.q = q
-        self.pool = pool
         self.game = game_engine
-        self.init_game_batches = init_game_batches
         self.game_batches_per_update = game_batches_per_update
         self.sample_batches_per_update = sample_batches_per_update
         self.updates_per_light_eval = updates_per_light_eval
@@ -59,6 +53,7 @@ class Train:
         self.light_stats_dict = {}
         self.full_stats_dict = {}
         self.update_cnt = 0
+        self.use_last_trans_only = use_last_trans_only
 
     def light_eval(self):
         self.light_stats_dict[self.update_cnt] = LightEval(self.q)()
@@ -70,14 +65,13 @@ class Train:
     
     def update(self):
         for _ in xrange(self.game_batches_per_update):
-            self.pool.extend(self.game(self.q.get_batch_actioner(FLAGS.epsilon), self.q.batch_size))
-        self.q.update_learner(self.pool.sample, self.sample_batches_per_update, self.decay)
+            self.game(self.q.get_batch_actioner(), self.q.batch_size)
+        if not self.use_last_trans_only:
+            self.q.update_learner(self.game.sample, self.sample_batches_per_update, self.decay)
+        else:
+            self.q.update_learner(self.game.last_trans, self.sample_batches_per_update, self.decay)
         # self.info_log( current_time() + ('Iter=%i - Updated' % self.update_cnt) )
         self.update_cnt += 1
-    
-    def init_process(self):
-        for _ in xrange(self.init_game_batches):
-            self.pool.extend(self.game(self.q.get_batch_actioner(1.0), self.q.batch_size))
 
     def save_model(self):
         model_dir = os.path.join(self.output_dir, 'model-%i' % self.update_cnt)
@@ -88,9 +82,9 @@ class Train:
     def info_log(self, s):
         with open(os.path.join(self.output_dir, 'log.txt'), 'a') as f:
             print >>f, s
+            f.flush()
 
     def __call__(self):
-        self.init_process()
         while self.update_cnt <= self.total_updates:
             if self.update_cnt % self.updates_per_light_eval == 0:
                 self.light_eval()

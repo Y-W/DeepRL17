@@ -1,8 +1,10 @@
+import os
 import multiprocessing as mp
 import numpy as np
-import np.random
-import scipy
+import scipy.misc
 import gym
+
+from util import list2NumpyBatches, numpyBatches2list
 
 downsampled_frame_size = (110, 84)
 frame_size = 84
@@ -55,7 +57,7 @@ class AtariGame:
 class AtariGame_ParallelWorker(mp.Process):
     def __init__(self, id, pipe,
                  game_name, max_episode, record_dir,
-                 history_length, clip_reward, epsilon
+                 history_length, clip_reward_on_samp, epsilon
                  ):
         super(AtariGame_ParallelWorker, self).__init__()
         self.id = id
@@ -67,7 +69,7 @@ class AtariGame_ParallelWorker(mp.Process):
             self.history_length = 4
         else:
             self.history_length = history_length
-        self.clip_reward = clip_reward
+        self.clip_reward = clip_reward_on_samp
         self.epsilon = epsilon
 
         self.store_frame = None
@@ -77,7 +79,7 @@ class AtariGame_ParallelWorker(mp.Process):
         self.store_p = None
     
     def run_init(self):
-        self.prng = np.random.RandomState(hash(self.game_name + str(id)) % 4294967296)
+        self.prng = np.random.RandomState(hash(self.game_name + str(self.id)) % 4294967296)
         self.game = AtariGame(self.game_name, int(self.prng.randint(4294967296)), self.max_episode, \
                               self.record_dir)
 
@@ -101,8 +103,8 @@ class AtariGame_ParallelWorker(mp.Process):
 
     def take_action(self, action):
         if action is None:
-            return
-        if self.prng.random() < self.epsilon:
+            return None, None
+        if self.prng.rand() < self.epsilon:
             action = self.prng.randint(self.game.action_n)
         ob, rew, is_new_ep = self.game.action(action)
         self.store_p = (self.store_p + 1) % self.history_length
@@ -110,12 +112,26 @@ class AtariGame_ParallelWorker(mp.Process):
         self.store_action[self.store_p] = action
         self.store_reward[self.store_p] = rew
         self.store_terminal[self.store_p] = is_new_ep
+        return rew, is_new_ep
     
     def get_ob(self):
         return self.get_state(self.store_p)
     
     def samp_trans(self):
         p = self.prng.randint(self.history_length)
+        s0 = self.get_state((p-1) % self.history_length)
+        act = self.store_action[p]
+        rew = self.store_reward[p]
+        if self.clip_reward:
+            rew = np.clip(rew, -1, 1)
+        if self.store_terminal[p]:
+            s1 = None
+        else:
+            s1 = self.get_state(p)
+        return (s0, act, rew, s1)
+    
+    def last_trans(self):
+        p = self.store_p
         s0 = self.get_state((p-1) % self.history_length)
         act = self.store_action[p]
         rew = self.store_reward[p]
@@ -149,11 +165,15 @@ class AtariGame_ParallelWorker(mp.Process):
             elif command == 1:
                 self.pipe.send(self.get_ob())
             elif command == 2:
-                self.take_action(arg)
+                self.pipe.send(self.take_action(arg))
             elif command == 3:
                 self.pipe.send(self.samp_trans())
-            else:
+            elif command == 4:
                 self.take_rand_action(arg)
+            elif command == 5:
+                self.pipe.send(self.last_trans())
+            else:
+                raise NotImplementedError()
 
 class GameBatch_Parallel:
     def __init__(self, size,
@@ -198,6 +218,10 @@ class GameBatch_Parallel:
     def take_action(self, actions):
         for p, a in zip(self.pipes, actions):
             p.send((2, a))
+        result = []
+        for p in self.pipes:
+            result.append(p.recv())
+        return result
     
     def samp_trans(self):
         for p in self.pipes:
@@ -210,4 +234,80 @@ class GameBatch_Parallel:
     def take_rand_action(self, n):
         for p in self.pipes:
             p.send((4, n))
+    
+    def last_trans(self):
+        for p in self.pipes:
+            p.send((5, None))
+        result = []
+        for p in self.pipes:
+            result.append(p.recv())
+        return result
 
+
+class GameEngine_Train:
+    def __init__(self, size, history_length):
+        self.size = size
+        self.game_batch = GameBatch_Parallel(size, max_episode_train, None, history_length, True)
+        self.game_batch.take_rand_action(history_length)
+
+    def __call__(self, actioner_fn, actioner_batch_size):
+        states = self.game_batch.get_ob()
+        state_batches = list2NumpyBatches(states, actioner_batch_size)
+        action_batches = [actioner_fn(states) for states in state_batches]
+        actions = numpyBatches2list(action_batches, self.size)
+        actions = [int(a) for a in actions]
+        self.game_batch.take_action(actions)
+    
+    def sample(self, n):
+        assert n == self.size
+        return self.game_batch.samp_trans()
+    
+    def last_trans(self, n):
+        assert n == self.size
+        return self.game_batch.last_trans()
+
+class GameEngine_Eval:
+    def __init__(self, size):
+        self.size = size
+        self.game_batch = GameBatch_Parallel(size, None, None, None, False)
+    
+    def __call__(self, actioner_fn, actioner_batch_size):
+        total_score = [0.0] * self.size
+        running = [True] * self.size
+        while any(running):
+            obs = self.game_batch.get_ob()
+            indx = [i for i, r in enumerate(running) if r]
+            active_states = [obs[i] for i in indx]
+            state_batches = list2NumpyBatches(active_states, actioner_batch_size)
+            action_batches = [actioner_fn(states) for states in state_batches]
+            actions = numpyBatches2list(action_batches, len(indx))
+
+            actions_augmented = [None] * self.size
+            for i, a in zip(indx, actions):
+                actions_augmented[i] = int(a)
+            info = self.game_batch.take_action(actions_augmented)
+
+            for i, (r, t) in enumerate(info):
+                if running[i]:
+                    total_score[i] += r
+                    if t:
+                        running[i] = False                    
+        self.game_batch.close()
+        return total_score
+
+class GameEngine_Recorded:
+    def __init__(self, record_dir):
+        if not os.path.exists(record_dir):
+            os.makedirs(record_dir)
+        self.game = GameBatch_Parallel(1, None, record_dir, None, None)
+    def __call__(self, actioner_fn, actioner_batch_size):
+        while True:
+            ob = self.game.get_ob()[0]
+            input_batch = np.zeros((actioner_batch_size,) + self.game.state_shape, dtype=np.float32)
+            input_batch[0] = ob
+            action_batch = actioner_fn(input_batch)
+            action = int(action_batch[0])
+            _, t = self.game.take_action([action])[0]
+            if t:
+                break
+        self.game.close()
