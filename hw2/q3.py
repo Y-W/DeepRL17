@@ -14,6 +14,7 @@ tf.app.flags.DEFINE_integer('batch', 32, 'Batch size')
 tf.app.flags.DEFINE_integer('total_updates', 100, 'Number of training updates')
 tf.app.flags.DEFINE_float('learning_rate_initial', 1e-1, 'Initial learning rate')
 tf.app.flags.DEFINE_float('learning_rate_final', 1e-2, 'Final learning rate')
+tf.app.flags.DEFINE_float('weight_decay', 1e-4, 'Weight Decay')
 tf.app.flags.DEFINE_float('decay', 0.99, 'Decay factor')
 tf.app.flags.DEFINE_integer('batches_per_udpate', 1024, 'Number of batches per update')
 tf.app.flags.DEFINE_integer('replay_limit_updates', 8, 'Limit for experience replay')
@@ -28,7 +29,7 @@ def main(argv=None):
 
     learning_rate = ExponentialDecay(FLAGS.learning_rate_initial, FLAGS.learning_rate_final, FLAGS.total_updates)
     game_info = game_engine.game_batch
-    learner = LinearLeaner(game_info.state_shape, game_info.action_n, FLAGS.batch, learning_rate)
+    learner = LinearLeaner(game_info.state_shape, game_info.action_n, FLAGS.batch, learning_rate, FLAGS.weight_decay)
     q = SimpleQ(learner)
 
     updates_per_full_eval = FLAGS.total_updates // FLAGS.full_eval

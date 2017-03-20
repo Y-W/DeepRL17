@@ -151,7 +151,7 @@ class DoubleQ(Q):
 
 
 class LinearLeaner(Learner):
-    def __init__(self, state_shape, action_n, batch_size, learning_rate):
+    def __init__(self, state_shape, action_n, batch_size, learning_rate, weight_decay):
         self.state_shape = state_shape
         self.feature_num = np.prod(state_shape)
         self.action_n = action_n
@@ -159,6 +159,7 @@ class LinearLeaner(Learner):
         self.W = np.zeros((self.feature_num, self.action_n), dtype=np.float32)
         self.B = np.zeros((self.action_n,), dtype=np.float32)
         self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
 
     def eval_batch(self, input_batch):
         input_batch = np.reshape(input_batch, (input_batch.shape[0], -1))
@@ -172,6 +173,8 @@ class LinearLeaner(Learner):
         lr = self.learning_rate()
         self.B -= lr * np.sum(grad_out, axis=0)
         self.W -= lr * np.dot(input_batch.T, grad_out)
+        self.B -= self.weight_decay * self.B
+        self.W -= self.weight_decay * self.W
 
     def save(self, filePath):
         np.savez(filePath, W=self.W, B=self.B)
