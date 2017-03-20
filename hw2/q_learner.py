@@ -168,7 +168,7 @@ class LinearLeaner(Learner):
         input_batch = np.reshape(input_batch, (input_batch.shape[0], -1))
         action_one_hot = np.eye(self.action_n)[action_batch]
         out = np.dot(input_batch, self.W) + self.B
-        grad_out = action_one_hot * (out - target_batch[:, np.newaxis]) * (1.0 / self.batch_size)
+        grad_out = action_one_hot * np.clip(out - target_batch[:, np.newaxis], -1, 1) * (1.0 / self.batch_size)
         lr = self.learning_rate()
         self.B -= lr * np.sum(grad_out, axis=0)
         self.W -= lr * np.dot(input_batch.T, grad_out)
