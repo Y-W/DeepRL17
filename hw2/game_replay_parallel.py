@@ -10,10 +10,10 @@ downsampled_frame_size = (110, 84)
 frame_size = 84
 past_frame = 4
 
-max_episode_train = None # 200
+max_episode_train = 500
 atari_game = 'SpaceInvaders-v0' # 'Enduro-v0'
 epsilon_for_all = 0.05
-clip_reward_on_train = False # True
+clip_reward_on_train = True
 
 
 def process_frame_for_storage(f):

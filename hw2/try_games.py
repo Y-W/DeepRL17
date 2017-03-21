@@ -18,10 +18,10 @@ while t1 < 10000:
     t1 += 1
     if done:
         print("Episode finished after {} timesteps".format(t0))
-        print np.max(observation)
-        for _ in xrange(10):
-            a, b, c, d = env.step(action)
-            print a.shape, b, c
-        t0 = 0
+        # print np.max(observation)
+        # for _ in xrange(10):
+        #     a, b, c, d = env.step(action)
+        #     print a.shape, b, c
+        # t0 = 0
         env.reset()
 print current_time()
