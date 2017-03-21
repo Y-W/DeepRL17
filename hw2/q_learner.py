@@ -205,8 +205,7 @@ class DeepLearner(Learner):
                                                 kernel_size= (8,8),
                                                 strides = (4,4),
                                                 data_format = 'channels_first',
-                                                kernel_initializer = tf.random_normal_initializer(
-                                                        stddev=np.sqrt(2.0 / self.input_tensor.get_shape()[1].value)),
+                                                kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                                 bias_initializer = tf.constant_initializer(0.1),
                                                 activation = tf.nn.relu,
                                                 name = 'conv1')
@@ -216,8 +215,7 @@ class DeepLearner(Learner):
                                                 kernel_size= (4,4),
                                                 strides = (2,2),
                                                 data_format = 'channels_first',
-                                                kernel_initializer = tf.random_normal_initializer(
-                                                        stddev=np.sqrt(2.0 / self.conv1.get_shape()[1].value)),
+                                                kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                                 bias_initializer = tf.constant_initializer(0.1),
                                                 activation = tf.nn.relu,
                                                 name = 'conv2')
@@ -237,15 +235,13 @@ class DeepLearner(Learner):
                 self.fcn1 = tf.layers.dense(inputs = self.flat,
                                             units = 256,
                                             activation = tf.nn.relu,
-                                            kernel_initializer = tf.random_normal_initializer(
-                                                        stddev=np.sqrt(2.0 / self.flat.get_shape()[1].value)),
+                                            kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                             name = 'fcn1')
                 tf.summary.histogram('fcn1', self.fcn1)
                 self.fcn2 = tf.layers.dense(inputs = self.fcn1,
                                             units = action_n,
                                             activation = None,
-                                            kernel_initializer = tf.random_normal_initializer(
-                                                        stddev=np.sqrt(1.0 / self.flat.get_shape()[1].value)),
+                                            kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                             name = 'linear')
                 tf.summary.histogram('output', self.fcn2)
             with tf.variable_scope('Loss'):
