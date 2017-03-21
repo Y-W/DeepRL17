@@ -388,7 +388,7 @@ class DeepDuelLearner(Learner):
                                             bias_initializer = tf.constant_initializer(),
                                             name = 'fcn2')
                 tf.summary.histogram('fcn2', self.action_fcn2_tensor)
-                self.action_output = tf.substract(self.action_fcn2_tensor, tf.reduce_mean(self.action_fcn2_tensor, axis=1, keep_dims=True), name='output')
+                self.action_output = tf.subtract(self.action_fcn2_tensor, tf.reduce_mean(self.action_fcn2_tensor, axis=1, keep_dims=True), name='output')
                 tf.summary.histogram('output', self.action_output)
             
             self.total_output = tf.add(self.value_fcn2_tensor, self.action_output, name='total_output')
