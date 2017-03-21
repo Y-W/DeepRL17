@@ -114,7 +114,7 @@ class DoubleQ(Q):
             s0_batch = np.zeros((self.batch_size,) + self.state_shape, dtype=np.float32)
             s1_batch = np.zeros((self.batch_size,) + self.state_shape, dtype=np.float32)
             action_batch = np.zeros(self.batch_size, dtype=np.int_)
-            terminal_batch = [None] * self.batch_size
+            terminal_batch = np.zeros(self.batch_size, dtype=np.int_)
             reward_batch = np.zeros(self.batch_size, dtype=np.float32)
             for i in xrange(self.batch_size):
                 s0_batch[i] = trans[i][0]
@@ -122,9 +122,9 @@ class DoubleQ(Q):
                 reward_batch[i] = trans[i][2]
                 if trans[i][3] is not None:
                     s1_batch[i] = trans[i][3]
-                    terminal_batch[i] = False
+                    terminal_batch[i] = 1
                 else:
-                    terminal_batch[i] = True
+                    terminal_batch[i] = 0
             est = self.learner.eval_batch(s1_batch)
             inputs.append(s0_batch)
             actions.append(action_batch)
@@ -135,7 +135,7 @@ class DoubleQ(Q):
         for i in xrange(batch_num):
             target_batch = rewards[i]
             s1_act = np.argmax(self.learner.eval_batch(s1s[i]), axis=1)
-            target_batch += decay * (1 - terminals[i])[:, np.newaxis] * estimates[i][np.arange(self.batch_size), s1_act]
+            target_batch += decay * terminals[i][:, np.newaxis] * estimates[i][np.arange(self.batch_size), s1_act]
             self.learner.update_batch(inputs[i], actions[i], target_batch)
 
     def save(self, dir_path):
