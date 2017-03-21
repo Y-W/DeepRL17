@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from game_replay_parallel import GameEngine_Train
 from util import ExponentialDecay, Constant
-from q_learner import DeepLearner, SimpleQ
+from q_learner import DeepLearner, DoubleQ
 from framework import Train
 
 
@@ -21,7 +21,7 @@ tf.app.flags.DEFINE_integer('batches_per_udpate', 312, 'Number of batches per up
 tf.app.flags.DEFINE_integer('replay_limit_updates', 100, 'Limit for experience replay') # 100
 tf.app.flags.DEFINE_integer('light_eval', 100, 'Number of light evals')
 tf.app.flags.DEFINE_integer('full_eval', 10, 'Number of full evals')
-tf.app.flags.DEFINE_string('output_dir', 'outputs/q5', 'Output directory')
+tf.app.flags.DEFINE_string('output_dir', 'outputs/q6', 'Output directory')
 
 def main(argv=None):
     logging.disable(logging.INFO)
@@ -31,10 +31,13 @@ def main(argv=None):
 
     game_info = game_engine.game_batch
     sess = tf.Session()
-    learner = DeepLearner('learner', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
+    learner1 = DeepLearner('learner1', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
                           learning_rate, FLAGS.weight_decay, 
-                          os.path.join(FLAGS.output_dir, 'tf_log'))
-    q = SimpleQ(learner)
+                          os.path.join(FLAGS.output_dir, 'tf_log1'))
+    learner2 = DeepLearner('learner2', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
+                          learning_rate, FLAGS.weight_decay, 
+                          os.path.join(FLAGS.output_dir, 'tf_log2'))
+    q = DoubleQ(learner1, learner2)
 
     updates_per_full_eval = FLAGS.total_updates // FLAGS.full_eval
     updates_per_light_eval = FLAGS.total_updates // FLAGS.light_eval

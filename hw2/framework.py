@@ -64,13 +64,18 @@ class Train:
         self.info_log(current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + stats_str(self.full_stats_dict[self.update_cnt]))
     
     def update(self):
+        if self.game_batches_per_update > 10:
+            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Start Running Game'
         for _ in xrange(self.game_batches_per_update):
             self.game(self.q.get_batch_actioner(), self.q.batch_size)
+        if self.game_batches_per_update > 10:
+            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Start Optimizing Q'
         if not self.use_last_trans_only:
             self.q.update_learner(self.game.sample, self.sample_batches_per_update, self.decay)
         else:
             self.q.update_learner(self.game.last_trans, self.sample_batches_per_update, self.decay)
-        # self.info_log( current_time() + ('Iter=%i - Updated' % self.update_cnt) )
+        if self.game_batches_per_update > 10:
+            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Finish Optimizing Q'
         self.update_cnt += 1
 
     def save_model(self):
