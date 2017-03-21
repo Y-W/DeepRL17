@@ -11,7 +11,7 @@ from framework import Train
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch', 32, 'Batch size')
-tf.app.flags.DEFINE_integer('total_updates', 100000, 'Number of training updates')
+tf.app.flags.DEFINE_integer('total_updates', 150000, 'Number of training updates')
 tf.app.flags.DEFINE_float('learning_rate_initial', 1e-2, 'Initial learning rate')
 tf.app.flags.DEFINE_float('learning_rate_final', 1e-2, 'Final learning rate')
 tf.app.flags.DEFINE_float('weight_decay', 1e-4, 'Weight Decay')

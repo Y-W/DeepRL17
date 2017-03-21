@@ -31,13 +31,10 @@ def main(argv=None):
 
     game_info = game_engine.game_batch
     sess = tf.Session()
-    learner1 = DeepLearner('learner1', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
+    learner = DeepLearner('learner', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
                           learning_rate, FLAGS.weight_decay, 
-                          os.path.join(FLAGS.output_dir, 'tf_log1'))
-    learner2 = DeepLearner('learner2', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
-                          learning_rate, FLAGS.weight_decay, 
-                          os.path.join(FLAGS.output_dir, 'tf_log2'))
-    q = DoubleQ(learner1, learner2)
+                          os.path.join(FLAGS.output_dir, 'tf_log'))
+    q = DoubleQ(learner)
 
     updates_per_full_eval = FLAGS.total_updates // FLAGS.full_eval
     updates_per_light_eval = FLAGS.total_updates // FLAGS.light_eval

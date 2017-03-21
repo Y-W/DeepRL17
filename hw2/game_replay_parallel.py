@@ -10,9 +10,10 @@ downsampled_frame_size = (110, 84)
 frame_size = 84
 past_frame = 4
 
-max_episode_train = 200
+max_episode_train = None # 200
 atari_game = 'SpaceInvaders-v0' # 'Enduro-v0'
 epsilon_for_all = 0.05
+clip_reward_on_train = False # True
 
 
 def process_frame_for_storage(f):
@@ -66,9 +67,9 @@ class AtariGame_ParallelWorker(mp.Process):
         self.game = None
         self.game_name, self.max_episode, self.record_dir = game_name, max_episode, record_dir
         if history_length is None or history_length < past_frame:
-            self.history_length = 4
+            self.history_length = past_frame
         else:
-            self.history_length = history_length
+            self.history_length = history_length + past_frame - 1
         self.clip_reward = clip_reward_on_samp
         self.epsilon = epsilon
 
@@ -118,7 +119,7 @@ class AtariGame_ParallelWorker(mp.Process):
         return self.get_state(self.store_p)
     
     def samp_trans(self):
-        p = self.prng.randint(self.history_length)
+        p = (self.prng.randint(self.history_length - past_frame + 1) + self.store_p + past_frame) % self.history_length
         s0 = self.get_state((p-1) % self.history_length)
         act = self.store_action[p]
         rew = self.store_reward[p]
@@ -247,7 +248,7 @@ class GameBatch_Parallel:
 class GameEngine_Train:
     def __init__(self, size, history_length):
         self.size = size
-        self.game_batch = GameBatch_Parallel(size, max_episode_train, None, history_length, True)
+        self.game_batch = GameBatch_Parallel(size, max_episode_train, None, history_length, clip_reward_on_train)
         self.game_batch.take_rand_action(history_length)
 
     def __call__(self, actioner_fn, actioner_batch_size):
