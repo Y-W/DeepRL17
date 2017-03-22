@@ -6,7 +6,7 @@ import gym
 
 from util import list2NumpyBatches, numpyBatches2list
 
-downsampled_frame_size = (110, 84)
+downsampled_frame_size = (100, 84)
 frame_size = 84
 past_frame = 4
 
@@ -18,8 +18,9 @@ clip_reward_on_train = True
 
 def process_frame_for_storage(f):
     f = np.mean(f, axis=2).round().astype(np.uint8)
-    f = scipy.misc.imresize(f, downsampled_frame_size)
-    f = f[13:97, :].astype(np.uint8)
+    f = scipy.misc.imresize(f, downsampled_frame_size, interp='nearest')
+    f = f[10:94, :].astype(np.uint8)
+    f = (f > 0).astype(np.uint8) * 255
     return f
 
 def process_frame_for_output(f):
