@@ -180,7 +180,7 @@ class LinearLeaner(Learner):
         self.B = tmp['B']
 
 class DeepLearner(Learner):
-    def __init__(self, name, sess, state_shape, action_n, batch_size, learning_rate, weight_decay, log_dir):
+    def __init__(self, name, state_shape, action_n, batch_size, learning_rate, weight_decay, log_dir):
         self.state_shape = state_shape
         self.action_n = action_n
         self.batch_size = batch_size
@@ -270,7 +270,7 @@ class DeepLearner(Learner):
                 self.train_op = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate_tensor)\
                                         .minimize(self.total_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
             self.summary_op = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES, scope=name))
-            self.sess = sess # tf.Session()
+            self.sess = tf.Session()
             self.init_op = tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
             self.sess.run(self.init_op)
             self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
@@ -305,7 +305,7 @@ class DeepLearner(Learner):
         self.saver.restore(self.sess, filePath + 'model.ckpt')
 
 class DeepDuelLearner(Learner):
-    def __init__(self, name, sess, state_shape, action_n, batch_size, learning_rate, weight_decay, log_dir):
+    def __init__(self, name, state_shape, action_n, batch_size, learning_rate, weight_decay, log_dir):
         self.state_shape = state_shape
         self.action_n = action_n
         self.batch_size = batch_size
@@ -436,7 +436,7 @@ class DeepDuelLearner(Learner):
                 self.train_op = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate_tensor)\
                                         .minimize(self.total_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
             self.summary_op = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES, scope=name))
-            self.sess = sess # tf.Session()
+            self.sess = tf.Session()
             self.init_op = tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
             self.sess.run(self.init_op)
             self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))

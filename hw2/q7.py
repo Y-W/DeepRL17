@@ -30,8 +30,7 @@ def main(argv=None):
     learning_rate = ExponentialDecay(FLAGS.learning_rate_initial, FLAGS.learning_rate_final, FLAGS.total_updates)
 
     game_info = game_engine.game_batch
-    sess = tf.Session()
-    learner = DeepDuelLearner('learner', sess, game_info.state_shape, game_info.action_n, FLAGS.batch, 
+    learner = DeepDuelLearner('learner', game_info.state_shape, game_info.action_n, FLAGS.batch, 
                           learning_rate, FLAGS.weight_decay, 
                           os.path.join(FLAGS.output_dir, 'tf_log'))
     q = SimpleQ(learner)
