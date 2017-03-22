@@ -18,8 +18,8 @@ while t1 < 10000:
     observation, reward, done, info = env.step(action)
     if t0 == 200:
         print observation.shape
-        scipy.misc.imsave('tmp1.png', observation)
-        scipy.misc.imsave('tmp2.png', process_frame_for_storage(observation))
+        scipy.misc.imsave('original_scene.png', observation)
+        scipy.misc.imsave('processed_scene.png', process_frame_for_storage(observation))
         # scipy.misc.imsave('tmp2.png', scipy.misc.imresize(observation, (168, 168)))
     t0 += 1
     t1 += 1
