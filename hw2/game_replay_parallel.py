@@ -20,7 +20,7 @@ def process_frame_for_storage(f):
     f = np.mean(f, axis=2).round().astype(np.uint8)
     f = scipy.misc.imresize(f, downsampled_frame_size)
     f = np.maximum(np.maximum(f[::2, ::2], f[::2, 1::2]), np.maximum(f[1::2, ::2], f[1::2, 1::2]))
-    f = (f > 0).astype(np.uint8) * 255
+    f = ((f > 26) * 255).astype(np.uint8)
     return f
 
 def process_frame_for_output(f):
