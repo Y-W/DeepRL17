@@ -135,7 +135,7 @@ class DoubleQ(Q):
         for i in xrange(batch_num):
             target_batch = rewards[i]
             s1_act = np.argmax(self.learner.eval_batch(s1s[i]), axis=1)
-            target_batch += decay * terminals[i][:, np.newaxis] * estimates[i][np.arange(self.batch_size), s1_act]
+            target_batch += decay * terminals[i] * estimates[i][np.arange(self.batch_size), s1_act]
             self.learner.update_batch(inputs[i], actions[i], target_batch)
 
     def save(self, dir_path):
