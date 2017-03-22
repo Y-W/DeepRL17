@@ -1,26 +1,26 @@
 import os
 import multiprocessing as mp
 import numpy as np
-import scipy.misc
 import gym
 
 from util import list2NumpyBatches, numpyBatches2list
 
-downsampled_frame_size = (168, 168)
-frame_size = 84
+frame_size = (105, 80)
 past_frame = 4
-
-max_episode_train = None
 atari_game = 'SpaceInvaders-v0' # 'Enduro-v0'
-epsilon_for_all = 0.05
-clip_reward_on_train = True
+
+train_hist_len = 32768
+def train_epsilon(k):
+    return max(0.1, 1.0 - 0.9e-6 * k)
+def eval_epsilon(k):
+    return 0.05
+train_hist_len = 31250 + past_frame - 1
+eval_hist_len = past_frame
 
 
 def process_frame_for_storage(f):
     f = np.mean(f, axis=2).round().astype(np.uint8)
-    f = scipy.misc.imresize(f, downsampled_frame_size)
     f = np.maximum(np.maximum(f[::2, ::2], f[::2, 1::2]), np.maximum(f[1::2, ::2], f[1::2, 1::2]))
-    f = ((f > 26) * 255).astype(np.uint8)
     return f
 
 def process_frame_for_output(f):
@@ -29,25 +29,20 @@ def process_frame_for_output(f):
 
 
 class AtariGame:
-    def __init__(self, game_name, prng_seed, max_episode, record_dir):
+    def __init__(self, game_name, prng_seed, record_dir):
         self.env = gym.make(game_name)
         self.env.seed(prng_seed)
         if record_dir is not None:
             self.env = gym.wrappers.Monitor(self.env, record_dir, force=True)
         self.action_n = self.env.action_space.n
-        self.max_episode = max_episode
-        self.episode_cnt = -1
     
     def reset(self):
-        self.episode_cnt = 0
         return self.env.reset()
     
     def action(self, action):
-        assert self.episode_cnt >= 0
         ob, rew, done, _ = self.env.step(int(action))
-        self.episode_cnt += 1
         is_new_ep = False
-        if done or (self.max_episode is not None and self.episode_cnt >= self.max_episode):
+        if done:
             ob = self.reset()
             is_new_ep = True
         return ob, rew, is_new_ep
@@ -57,45 +52,48 @@ class AtariGame:
 
 
 class AtariGame_ParallelWorker(mp.Process):
-    def __init__(self, id, pipe,
-                 game_name, max_episode, record_dir,
-                 history_length, clip_reward_on_samp, epsilon
-                 ):
+    def __init__(self, id, pipe, is_eval, record_dir):
         super(AtariGame_ParallelWorker, self).__init__()
         self.id = id
         self.pipe = pipe
+        self.is_eval = self.is_alive
+
         self.prng = None
         self.game = None
-        self.game_name, self.max_episode, self.record_dir = game_name, max_episode, record_dir
-        if history_length is None or history_length < past_frame:
-            self.history_length = past_frame
+
+        self.record_dir = record_dir
+
+        if not is_eval:
+            self.history_length = train_hist_len
+            self.epsilon = train_epsilon
         else:
-            self.history_length = history_length + past_frame - 1
-        self.clip_reward = clip_reward_on_samp
-        self.epsilon = epsilon
+            self.history_length = eval_hist_len
+            self.epsilon = eval_epsilon
 
         self.store_frame = None
         self.store_action = None
         self.store_reward = None
         self.store_terminal = None
         self.store_p = None
+
+        self.action_cnt = None
     
     def run_init(self):
-        self.prng = np.random.RandomState(hash(self.game_name + str(self.id)) % 4294967296)
-        self.game = AtariGame(self.game_name, int(self.prng.randint(4294967296)), self.max_episode, \
-                              self.record_dir)
+        self.prng = np.random.RandomState(hash(atari_game + str(self.id)) % 4294967296)
+        self.game = AtariGame(atari_game, int(self.prng.randint(4294967296)), self.record_dir)
 
-        self.store_frame = np.zeros((self.history_length, frame_size, frame_size), dtype=np.uint8)
+        self.store_frame = np.zeros((self.history_length,) + frame_size, dtype=np.uint8)
         self.store_action = np.zeros((self.history_length,), dtype=np.uint8)
         self.store_reward = np.zeros((self.history_length,), dtype=np.float32)
         self.store_terminal = np.zeros((self.history_length,), dtype=np.bool_)
         self.store_p = 0
 
+        self.action_cnt = 0
         self.store_frame[self.store_p] = process_frame_for_storage(self.game.reset())
         self.store_terminal[self.store_p] = True
     
     def get_state(self, pos):
-        arr = np.zeros((past_frame, frame_size, frame_size), dtype=np.float32)
+        arr = np.zeros((past_frame,) + frame_size), dtype=np.float32)
         for i in xrange(past_frame):
             p = (pos - i) % self.history_length
             arr[past_frame - 1 - i] = process_frame_for_output(self.store_frame[p])
@@ -105,10 +103,11 @@ class AtariGame_ParallelWorker(mp.Process):
 
     def take_action(self, action):
         if action is None:
-            return None, None
-        if self.prng.rand() < self.epsilon:
+            return None
+        if self.prng.rand() < self.epsilon(self.action_cnt):
             action = self.prng.randint(self.game.action_n)
         ob, rew, is_new_ep = self.game.action(action)
+        self.action_cnt += 1
         self.store_p = (self.store_p + 1) % self.history_length
         self.store_frame[self.store_p] = process_frame_for_storage(ob)
         self.store_action[self.store_p] = action
