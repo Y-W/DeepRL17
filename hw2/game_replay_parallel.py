@@ -310,7 +310,7 @@ class GameEngine_Recorded:
             aug_ob[0:1] = self.games.ob_output
             self.games.action_input[:] = actioner_fn(aug_ob)[0]
             self.games.take_action()
-            running = bool(self.games.terminal_output[0])
+            running = not bool(self.games.terminal_output[0])
     
     def close(self):
         self.games.close()
