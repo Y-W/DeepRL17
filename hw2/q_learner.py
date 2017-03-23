@@ -33,7 +33,6 @@ class Learner:
                         feed_dict = {self.input_tensor:input_batch,
                                     self.actions_tensor:action_batch,
                                     self.targets_tensor:target_batch})
-        
     
     def save(self, filePath):
         assert self.learning_rate is not None
