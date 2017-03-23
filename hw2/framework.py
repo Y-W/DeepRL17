@@ -47,10 +47,6 @@ class Train:
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
         
-        self.tmp_dir = os.path.join(self.output_dir, 'tmp')
-        if not os.path.exists(self.tmp_dir):
-            os.makedirs(self.tmp_dir)
-
     def light_eval(self):
         stats_seq = self.games_eval(self.onlineQ.eval_batch_action, 1)
         self.info_log(current_time() + ('Sim=%i Eval - ' % self.sim_cnt) \
@@ -91,8 +87,13 @@ class Train:
             f.flush()
     
     def sync(self):
-        tmpPath = self.onlineQ.save(os.path.join(self.tmp_dir, 'tmp.ckpt'))
-        self.targetQ.load(tmpPath)
+        param_map = self.onlineQ.get_param()
+        result_map = {}
+        for k, v in param_map.iteritems():
+            assert k.startswith('online_Q')
+            new_k = k.replace('online_Q', 'target_Q', 1)
+            result_map[new_k] = v
+        self.targetQ.set_param(result_map)
 
     def __call__(self):
         self.games_train = GameEngine_Train(batch_size, self.use_replay)

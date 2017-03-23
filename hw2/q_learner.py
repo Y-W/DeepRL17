@@ -13,19 +13,36 @@ class Learner:
         raise NotImplementedError()
 
     def eval_batch(self, input_batch):
-        raise NotImplementedError()
+        return self.sess.run(self.output_tensor, feed_dict = {self.input_tensor:input_batch})
     
     def eval_batch_action(self, input_batch):
-        raise NotImplementedError()
+        return self.sess.run(self.best_action, feed_dict = {self.input_tensor:input_batch})
 
     def update_batch(self, input_batch, action_batch, target_batch):
-        raise NotImplementedError()
+        assert self.learning_rate is not None
+        _, summary = self.sess.run([self.train_op, self.summary_op],
+                      feed_dict = {self.input_tensor:input_batch,
+                                   self.actions_tensor:action_batch,
+                                   self.targets_tensor:target_batch})
+        self.log_writer.add_summary(summary, global_step=self.udpate_step)
+        self.udpate_step += 1
     
     def save(self, filePath):
-        raise NotImplementedError()
+        assert self.learning_rate is not None
+        return self.saver.save(self.sess, filePath)
     
     def load(self, filePath):
-        raise NotImplementedError()
+        self.saver.restore(self.sess, filePath)
+    
+    def get_param(self):
+        params =  self.sess.run(self.model_vars)
+        return {t.name : v for t, v in zip(self.model_vars, params)}
+    
+    def set_param(self, param_map):
+        feed_dict = {}
+        for t, name in self.model_feed:
+            feed_dict[t] = param_map[name]
+        self.sess.run(self.assign_model_op, feed_dict=feed_dict)
 
 
 class LinearLeaner(Learner):
@@ -49,6 +66,17 @@ class LinearLeaner(Learner):
                                               kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                               name = 'linear')
                 self.best_action = tf.to_int32(tf.argmax(self.output_tensor, axis=1), name='best_action')
+            
+            self.model_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
+            with tf.name_scope('assign_model'):
+                model_assign_ops = []
+                self.model_feed = []
+                for v in self.model_vars:
+                    ph = tf.placeholder(v.dtype, shape=v.shape, name=v.name)
+                    as_op = tf.assign(v, ph)
+                    model_assign_ops.append(as_op)
+                    self.model_feed.append((ph, v.name))
+                self.assign_model_op = tf.group(*model_assign_ops, name='assign_model')
             
             if learning_rate is not None:
                 self.actions_tensor = tf.placeholder(tf.int32,
@@ -106,28 +134,6 @@ class LinearLeaner(Learner):
 
             self.udpate_step = 0
 
-    def eval_batch(self, input_batch):
-        return self.sess.run(self.output_tensor, feed_dict = {self.input_tensor:input_batch})
-    
-    def eval_batch_action(self, input_batch):
-        return self.sess.run(self.best_action, feed_dict = {self.input_tensor:input_batch})
-
-    def update_batch(self, input_batch, action_batch, target_batch):
-        assert self.learning_rate is not None
-        _, summary = self.sess.run([self.train_op, self.summary_op],
-                      feed_dict = {self.input_tensor:input_batch,
-                                   self.actions_tensor:action_batch,
-                                   self.targets_tensor:target_batch})
-        self.log_writer.add_summary(summary, global_step=self.udpate_step)
-        self.udpate_step += 1
-    
-    def save(self, filePath):
-        assert self.learning_rate is not None
-        return self.saver.save(self.sess, filePath)
-    
-    def load(self, filePath):
-        self.saver.restore(self.sess, filePath)
-
 
 class DeepLearner(Learner):
     def __init__(self, name, sess, state_shape, action_n, batch_size, learning_rate, log_dir):
@@ -177,6 +183,17 @@ class DeepLearner(Learner):
                                             bias_initializer = tf.constant_initializer(),
                                             name = 'linear')
                 self.best_action = tf.to_int32(tf.argmax(self.output_tensor, axis=1), name='best_action')
+            
+            self.model_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
+            with tf.name_scope('assign_model'):
+                model_assign_ops = []
+                self.model_feed = []
+                for v in self.model_vars:
+                    ph = tf.placeholder(v.dtype, shape=v.shape, name=v.name)
+                    as_op = tf.assign(v, ph)
+                    model_assign_ops.append(as_op)
+                    self.model_feed.append((ph, v.name))
+                self.assign_model_op = tf.group(*model_assign_ops, name='assign_model')
             
             if learning_rate is not None:
                 self.actions_tensor = tf.placeholder(tf.int32,
@@ -236,27 +253,6 @@ class DeepLearner(Learner):
             self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
 
             self.udpate_step = 0
-
-    def eval_batch(self, input_batch):
-        return self.sess.run(self.output_tensor, feed_dict = {self.input_tensor:input_batch})
-    
-    def eval_batch_action(self, input_batch):
-        return self.sess.run(self.best_action, feed_dict = {self.input_tensor:input_batch})
-
-    def update_batch(self, input_batch, action_batch, target_batch):
-        assert self.learning_rate is not None
-        _, summary = self.sess.run([self.train_op, self.summary_op],
-                      feed_dict = {self.input_tensor:input_batch,
-                                   self.actions_tensor:action_batch,
-                                   self.targets_tensor:target_batch})
-        self.log_writer.add_summary(summary, global_step=self.udpate_step)
-        self.udpate_step += 1
-    
-    def save(self, filePath):
-        return self.saver.save(self.sess, filePath)
-    
-    def load(self, filePath):
-        self.saver.restore(self.sess, filePath)
 
 
 class DeepDuelLearner(Learner):
@@ -347,6 +343,17 @@ class DeepDuelLearner(Learner):
                                             tf.reduce_mean(self.action_output, axis=1, keep_dims=True)), name='output')
                 self.best_action = tf.to_int32(tf.argmax(self.output_tensor, axis=1), name='best_action')
             
+            self.model_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
+            with tf.name_scope('assign_model'):
+                model_assign_ops = []
+                self.model_feed = []
+                for v in self.model_vars:
+                    ph = tf.placeholder(v.dtype, shape=v.shape, name=v.name)
+                    as_op = tf.assign(v, ph)
+                    model_assign_ops.append(as_op)
+                    self.model_feed.append((ph, v.name))
+                self.assign_model_op = tf.group(*model_assign_ops, name='assign_model')
+
             if learning_rate is not None:
                 self.actions_tensor = tf.placeholder(tf.int32,
                                                     shape = batch_size,
@@ -412,24 +419,3 @@ class DeepDuelLearner(Learner):
             self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
 
             self.udpate_step = 0
-
-    def eval_batch(self, input_batch):
-        return self.sess.run(self.output_tensor, feed_dict = {self.input_tensor:input_batch})
-    
-    def eval_batch_action(self, input_batch):
-        return self.sess.run(self.best_action, feed_dict = {self.input_tensor:input_batch})
-
-    def update_batch(self, input_batch, action_batch, target_batch):
-        assert self.learning_rate is not None
-        _, summary = self.sess.run([self.train_op, self.summary_op],
-                      feed_dict = {self.input_tensor:input_batch,
-                                   self.actions_tensor:action_batch,
-                                   self.targets_tensor:target_batch})
-        self.log_writer.add_summary(summary, global_step=self.udpate_step)
-        self.udpate_step += 1
-    
-    def save(self, filePath):
-        return self.saver.save(self.sess, filePath)
-    
-    def load(self, filePath):
-        self.saver.restore(self.sess, filePath)
