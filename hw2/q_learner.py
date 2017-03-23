@@ -29,7 +29,7 @@ class Learner:
                                     self.targets_tensor:target_batch})
             self.log_writer.add_summary(summary, global_step=self.udpate_step)
         else:
-            _, summary = self.sess.run([self.train_op, self.summary_op],
+            self.sess.run(self.train_op,
                         feed_dict = {self.input_tensor:input_batch,
                                     self.actions_tensor:action_batch,
                                     self.targets_tensor:target_batch})
