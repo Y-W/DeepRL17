@@ -43,6 +43,14 @@ class Train:
         self.sim_cnt = 0
         self.use_targetFix = (sim_per_sync is not None)
 
+        self.model_dir = os.path.join(self.output_dir, 'model')
+        if not os.path.exists(self.model_dir):
+            os.makedirs(self.model_dir)
+        
+        self.tmp_dir = os.path.join(self.output_dir, 'tmp')
+        if not os.path.exists(self.tmp_dir):
+            os.makedirs(self.tmp_dir)
+
     def light_eval(self):
         stats_seq = self.games_eval(self.onlineQ.eval_batch_action, 1)
         self.info_log(current_time() + ('Sim=%i Eval - ' % self.sim_cnt) \
@@ -74,10 +82,7 @@ class Train:
         self.sim_cnt += 1
 
     def record_save(self):
-        model_dir = os.path.join(self.output_dir, 'model-%i' % self.sim_cnt)
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
-        self.onlineQ.save(model_dir)
+        self.onlineQ.save(os.path.join(self.model_dir, 'model-%i.ckpt' % self.sim_cnt))
         self.games_record(self.onlineQ.eval_batch_action)
 
     def info_log(self, s):
@@ -86,7 +91,7 @@ class Train:
             f.flush()
     
     def sync(self):
-        tmpPath = self.onlineQ.save(os.path.join(self.output_dir, 'tmp-model'))
+        tmpPath = self.onlineQ.save(os.path.join(self.tmp_dir, 'tmp.ckpt'))
         self.targetQ.load(tmpPath)
 
     def __call__(self):
