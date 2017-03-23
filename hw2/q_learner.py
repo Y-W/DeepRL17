@@ -79,7 +79,7 @@ class LinearLeaner(Learner):
                 model_assign_ops = []
                 self.model_feed = []
                 for v in self.model_vars:
-                    ph = tf.placeholder(v.dtype, shape=v.shape)
+                    ph = tf.placeholder(v.dtype, shape=v.get_shape())
                     as_op = tf.assign(v, ph)
                     model_assign_ops.append(as_op)
                     self.model_feed.append((ph, v.name))
@@ -196,7 +196,7 @@ class DeepLearner(Learner):
                 model_assign_ops = []
                 self.model_feed = []
                 for v in self.model_vars:
-                    ph = tf.placeholder(v.dtype, shape=v.shape)
+                    ph = tf.placeholder(v.dtype, shape=v.get_shape())
                     as_op = tf.assign(v, ph)
                     model_assign_ops.append(as_op)
                     self.model_feed.append((ph, v.name))
@@ -355,7 +355,7 @@ class DeepDuelLearner(Learner):
                 model_assign_ops = []
                 self.model_feed = []
                 for v in self.model_vars:
-                    ph = tf.placeholder(v.dtype, shape=v.shape)
+                    ph = tf.placeholder(v.dtype, shape=v.get_shape())
                     as_op = tf.assign(v, ph)
                     model_assign_ops.append(as_op)
                     self.model_feed.append((ph, v.name))
