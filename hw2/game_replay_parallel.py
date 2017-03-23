@@ -308,7 +308,7 @@ class GameEngine_Recorded:
         aug_ob = np.zeros((self.actioner_batch_size,) + self.games.state_shape, dtype=np.float32)
         while running:
             aug_ob[0:1] = self.games.ob_output
-            self.games.action_input[:] = actioner_fn(aug_ob)
+            self.games.action_input[:] = actioner_fn(aug_ob)[0]
             self.games.take_action()
             running = bool(self.games.terminal_output[0])
     
