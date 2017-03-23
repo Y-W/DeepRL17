@@ -5,98 +5,121 @@ import tensorflow as tf
 from game_replay_parallel import GameEngine_Eval, GameEngine_Recorded, GameEngine_Train
 from util import stats, stats_str, current_time
 
-
-class LightEval:
-    def __init__(self, q, size=20):
-        self.q = q
-        self.size = size
-    def __call__(self):
-        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(), self.q.batch_size))
-
-
-class FullEval:
-    def __init__(self, q, record_dir, size=100):
-        self.q = q
-        self.size = size
-        self.record_dir = record_dir
-    def __call__(self):
-        GameEngine_Recorded(self.record_dir)(self.q.get_batch_actioner(), self.q.batch_size)
-        return stats(GameEngine_Eval(self.size)(self.q.get_batch_actioner(), self.q.batch_size))
-
+batch_size = 32
+decay = 0.99
+learning_rate = 0.00025
+full_eval_times = 12
+# update_per_sim = 8
+# sim_per_sync = 1250
+# sim_per_light_eval = 1250
+# sim_per_record_save = 12500
+# sim_per_save = 12500
+# total_sim = 312500
 
 class Train:
     def __init__(self,
-                 q,
-                 game_engine,
-                 decay,
-                 game_batches_per_update,
-                 sample_batches_per_update,
-                 updates_per_light_eval,
-                 updates_per_full_eval,
-                 updates_per_save,
-                 total_updates,
                  output_dir,
-                 use_last_trans_only=False
-                ):
-        self.q = q
-        self.game = game_engine
-        self.game_batches_per_update = game_batches_per_update
-        self.sample_batches_per_update = sample_batches_per_update
-        self.updates_per_light_eval = updates_per_light_eval
-        self.updates_per_full_eval = updates_per_full_eval
-        self.updates_per_save = updates_per_save
-        self.total_updates = total_updates
+                 learner_class,
+                 use_replay,
+                 use_doubleQ,
+                 update_per_sim,
+                 sim_per_sync,
+                 sim_per_light_eval,
+                 sim_per_record_save,
+                 total_sim):
         self.output_dir = output_dir
+        self.learner_class = learner_class
+        self.use_replay = use_replay
+        self.use_doubleQ = use_doubleQ
+        self.update_per_sim = update_per_sim
+        self.sim_per_sync = sim_per_sync
+        self.sim_per_light_eval = sim_per_light_eval
+        self.sim_per_record_save = sim_per_record_save
+        self.total_sim = total_sim
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        self.decay = decay
-        self.light_stats_dict = {}
-        self.full_stats_dict = {}
-        self.update_cnt = 0
-        self.use_last_trans_only = use_last_trans_only
+
+        self.sim_cnt = 0
+        self.use_targetFix = (sim_per_sync is not None)
 
     def light_eval(self):
-        self.light_stats_dict[self.update_cnt] = LightEval(self.q)()
-        self.info_log(current_time() + ('Iter=%i - Light Eval - ' % self.update_cnt) + stats_str(self.light_stats_dict[self.update_cnt]))
+        stats_seq = self.games_eval(self.onlineQ.eval_batch_action, 1)
+        self.info_log(current_time() + ('Sim=%i Eval - ' % self.sim_cnt) \
+                      + 'Reward : ' + stats_str(stats(stats_seq[0])) \
+                      + ' - Episode Length : ' + stats_str(stats(stats_seq[1])))
 
     def full_eval(self):
-        self.full_stats_dict[self.update_cnt] = FullEval(self.q, os.path.join(self.output_dir, 'video-%i' % self.update_cnt))()
-        self.info_log(current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + stats_str(self.full_stats_dict[self.update_cnt]))
+        stats_seq = self.games_eval(self.onlineQ.eval_batch_action, full_eval_times)
+        self.info_log(current_time() + ('Sim=%i Final - ' % self.sim_cnt) \
+                      + 'Reward : ' + stats_str(stats(stats_seq[0])) \
+                      + ' - Episode Length : ' + stats_str(stats(stats_seq[1])))
     
     def update(self):
-        if self.game_batches_per_update > 10:
-            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Start Running Game'
-        for _ in xrange(self.game_batches_per_update):
-            self.game(self.q.get_batch_actioner(), self.q.batch_size)
-        if self.game_batches_per_update > 10:
-            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Start Optimizing Q'
-        if not self.use_last_trans_only:
-            self.q.update_learner(self.game.sample, self.sample_batches_per_update, self.decay)
+        s0, act, rew, s1, tm = self.games_train.get_trans()
+        target = None
+        if not self.use_targetFix:
+            target = rew + np.logical_not(tm) * np.max(self.onlineQ.eval_batch(s1), axis=1)
+        elif not self.use_doubleQ:
+            target = rew + np.logical_not(tm) * np.max(self.targetQ.eval_batch(s1), axis=1)
         else:
-            self.q.update_learner(self.game.last_trans, self.sample_batches_per_update, self.decay)
-        if self.game_batches_per_update > 10:
-            print current_time() + ('Iter=%i - Full Eval - ' % self.update_cnt) + 'Finish Optimizing Q'
-        self.update_cnt += 1
+            best_act = self.onlineQ.eval_batch_action(s1)
+            target = rew + np.logical_not(tm) * self.targetQ.eval_batch(s1)[np.arange(batch_size), best_act]
+        self.onlineQ.update_batch(s0, act, target)
 
-    def save_model(self):
-        model_dir = os.path.join(self.output_dir, 'model-%i' % self.update_cnt)
+    def step_sim(self):
+        self.games_train(self.onlineQ.eval_batch_action)
+        for _ in xrange(self.update_per_sim):
+            self.update()
+        self.sim_cnt += 1
+
+    def record_save(self):
+        model_dir = os.path.join(self.output_dir, 'model-%i' % self.sim_cnt)
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        self.q.save(model_dir)
+        self.onlineQ.save(model_dir)
+        self.games_record(self.onlineQ.eval_batch_action)
 
     def info_log(self, s):
         with open(os.path.join(self.output_dir, 'log.txt'), 'a') as f:
             print >>f, s
             f.flush()
+    
+    def sync(self):
+        tmpPath = self.onlineQ.save(os.path.join(self.output_dir, 'tmp-model'))
+        self.targetQ.load(tmpPath)
 
     def __call__(self):
-        self.save_model()
-        self.full_eval()
-        while self.update_cnt < self.total_updates:
-            self.update()
-            if self.update_cnt % self.updates_per_light_eval == 0:
+        self.games_train = GameEngine_Train(batch_size, self.use_replay)
+        self.games_eval = GameEngine_Eval(batch_size)
+        self.games_record = GameEngine_Recorded(os.path.join(self.output_dir, 'game_video'), batch_size)
+
+        self.sess = tf.Session()
+        game_info = self.games_train.games
+        self.onlineQ = self.learner_class('online_Q', self.sess, game_info.state_shape, game_info.action_n, batch_size, \
+                                          learning_rate, os.path.join(self.output_dir, 'tf_log'))
+        if self.use_targetFix:
+            self.targetQ = self.learner_class('target_Q', self.sess, game_info.state_shape, game_info.action_n, batch_size, \
+                                          None, None)
+            self.sync()
+        
+        self.record_save()
+        self.light_eval()
+        
+        while self.sim_cnt < self.total_sim:
+            self.step_sim()
+            if self.use_targetFix and self.sim_cnt % self.sim_per_sync == 0:
+                self.sync()
+            if self.sim_cnt % self.sim_per_light_eval == 0:
                 self.light_eval()
-            if self.update_cnt % self.updates_per_full_eval == 0 or self.update_cnt == self.total_updates:
-                self.full_eval()
-            if self.update_cnt % self.updates_per_save == 0 or self.update_cnt == self.total_updates:
-                self.save_model()
+            if self.sim_cnt % self.sim_per_record_save == 0:
+                self.record_save()
+        
+        if self.sim_cnt % self.sim_per_record_save != 0:
+            self.record_save()
+        self.full_eval()
+
+        self.games_train.close()
+        self.games_eval.close()
+        self.games_record.close()
+        self.sess.close()

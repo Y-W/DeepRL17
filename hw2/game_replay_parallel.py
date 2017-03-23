@@ -13,10 +13,9 @@ action_n = 6
 
 train_hist_len = 31250
 def train_epsilon(k):
-    return max(0.1, 1.0 - 0.9e-6 * k)
+    return max(0.1, 1.0 - (0.9 / train_hist_len) * k)
 def eval_epsilon(k):
     return 0.05
-train_hist_len = 31250
 
 
 def process_frame_for_storage(f):
@@ -97,14 +96,14 @@ class AtariGame_ParallelWorker(mp.Process):
         self.store_frame[self.store_p] = process_frame_for_storage(self.game.reset())
         self.store_terminal[self.store_p] = True
 
-        self.action_input = np.frombuffer(self.shared_arrs[0], dtype=np.int8)
+        self.action_input = np.frombuffer(self.shared_arrs[0], dtype=np.int32)
         self.ob_output = np.frombuffer(self.shared_arrs[1], dtype=np.float32).reshape((-1, past_frame) + frame_size)
         self.rew_output = np.frombuffer(self.shared_arrs[2], dtype=np.float32)
         self.terminal_output = np.frombuffer(self.shared_arrs[3], dtype=np.bool_)
 
         if not self.is_eval:
             self.trans_s0 = np.frombuffer(self.shared_arrs[4], dtype=np.float32).reshape((-1, past_frame) + frame_size)
-            self.trans_action = np.frombuffer(self.shared_arrs[5], dtype=np.int8)
+            self.trans_action = np.frombuffer(self.shared_arrs[5], dtype=np.int32)
             self.trans_reward = np.frombuffer(self.shared_arrs[6], dtype=np.float32)
             self.trans_s1 = np.frombuffer(self.shared_arrs[7], dtype=np.float32).reshape((-1, past_frame) + frame_size)
             self.trans_terminal = np.frombuffer(self.shared_arrs[8], dtype=np.bool_)
@@ -195,25 +194,25 @@ class GameBatch_Parallel:
         self.state_shape = (past_frame,) + frame_size
         self.action_n = action_n
 
-        self.shared_arrs = (mp.Array(ctypes.c_int8, size, lock=False),
+        self.shared_arrs = (mp.Array(ctypes.c_int32, size, lock=False),
                             mp.Array(ctypes.c_float, size * past_frame * frame_size[0] * frame_size[1], lock=False),
                             mp.Array(ctypes.c_float, size, lock=False),
                             mp.Array(ctypes.c_bool, size, lock=False))
         if not is_eval:
             self.shared_arrs += (mp.Array(ctypes.c_float, size * past_frame * frame_size[0] * frame_size[1], lock=False),
-                                 mp.Array(ctypes.c_int8, size, lock=False),
+                                 mp.Array(ctypes.c_int32, size, lock=False),
                                  mp.Array(ctypes.c_float, size, lock=False),
                                  mp.Array(ctypes.c_float, size * past_frame * frame_size[0] * frame_size[1], lock=False),
                                  mp.Array(ctypes.c_bool, size, lock=False))
         
-        self.action_input = np.frombuffer(self.shared_arrs[0], dtype=np.int8)
+        self.action_input = np.frombuffer(self.shared_arrs[0], dtype=np.int32)
         self.ob_output = np.frombuffer(self.shared_arrs[1], dtype=np.float32).reshape((-1, past_frame) + frame_size)
         self.rew_output = np.frombuffer(self.shared_arrs[2], dtype=np.float32)
         self.terminal_output = np.frombuffer(self.shared_arrs[3], dtype=np.bool_)
 
         if not self.is_eval:
             self.trans_s0 = np.frombuffer(self.shared_arrs[4], dtype=np.float32).reshape((-1, past_frame) + frame_size)
-            self.trans_action = np.frombuffer(self.shared_arrs[5], dtype=np.int8)
+            self.trans_action = np.frombuffer(self.shared_arrs[5], dtype=np.int32)
             self.trans_reward = np.frombuffer(self.shared_arrs[6], dtype=np.float32)
             self.trans_s1 = np.frombuffer(self.shared_arrs[7], dtype=np.float32).reshape((-1, past_frame) + frame_size)
             self.trans_terminal = np.frombuffer(self.shared_arrs[8], dtype=np.bool_)
@@ -260,7 +259,7 @@ class GameEngine_Train:
         self.games.action_input[:] = actioner_fn(self.games.ob_output)
         self.games.take_action()
     
-    def get_trains(self):
+    def get_trans(self):
         self.games.get_trans()
         return self.games.trans_s0, self.games.trans_action, self.games.trans_reward, self.games.trans_s1, self.games.trans_terminal
     
@@ -274,9 +273,9 @@ class GameEngine_Eval:
     
     def run_episode(self, actioner_fn):
         total_scores = np.zeros(self.size, dtype=np.float32)
-        episode_length = np.zeros(self.size, dtype=np.int_)
+        episode_length = np.zeros(self.size, dtype=np.int32)
         running = np.ones(self.size, dtype=np.bool_)
-        no_action = -np.ones(self.size, dtype=np.int8)
+        no_action = -np.ones(self.size, dtype=np.int32)
         while np.any(running):
             self.games.action_input[:] = np.where(running, actioner_fn(self.games.ob_output), no_action)
             self.games.take_action()
@@ -302,13 +301,16 @@ class GameEngine_Recorded:
         if not os.path.exists(record_dir):
             os.makedirs(record_dir)
         self.actioner_batch_size = actioner_batch_size
-        self.game = GameBatch_Parallel(1, True, False, record_dir)
+        self.games = GameBatch_Parallel(1, True, False, record_dir)
 
     def __call__(self, actioner_fn):
         running = True
-        aug_ob = np.zeros((actioner_batch_size,) + self.game.state_shape, dtype=np.float32)
+        aug_ob = np.zeros((actioner_batch_size,) + self.games.state_shape, dtype=np.float32)
         while running:
             aug_ob[0:1] = self.games.ob_output
             self.games.action_input[:] = actioner_fn(aug_ob)
             self.games.take_action()
             running = bool(self.games.terminal_output[0])
+    
+    def close(self):
+        self.games.close()
