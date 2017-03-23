@@ -6,7 +6,7 @@ import tensorflow as tf
 gradient_momentum = 0.95
 squared_grad_mom = 0.95
 min_sqr_grad = 0.01
-summary_log_freq = 100
+summary_log_freq = 1000
 
 
 class Learner:
