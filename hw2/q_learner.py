@@ -260,7 +260,7 @@ class DeepLearner(Learner):
 
 
 class DeepDuelLearner(Learner):
-        def __init__(self, name, sess, state_shape, action_n, batch_size, learning_rate, log_dir):
+    def __init__(self, name, sess, state_shape, action_n, batch_size, learning_rate, log_dir):
         self.state_shape = state_shape
         self.action_n = action_n
         self.batch_size = batch_size
