@@ -68,9 +68,9 @@ class LinearLeaner(Learner):
                                                 name = 'q_pred')
                     self.diff = self.q_pred - self.targets_tensor
                     err = tf.abs(self.diff)
-                    self.hub_loss = tf.where(condition = self.err < 1.0,
+                    self.hub_loss = tf.where(condition = err < 1.0,
                                                 x = 0.5 * tf.square(self.diff),
-                                                y = self.err - 0.5,
+                                                y = err - 0.5,
                                                 name = 'huber_loss')
 
                 with tf.variable_scope('optim'):
@@ -196,9 +196,9 @@ class DeepLearner(Learner):
                                                 name = 'q_pred')
                     self.diff = self.q_pred - self.targets_tensor
                     err = tf.abs(self.diff)
-                    self.hub_loss = tf.where(condition = self.err < 1.0,
+                    self.hub_loss = tf.where(condition = err < 1.0,
                                                 x = 0.5 * tf.square(self.diff),
-                                                y = self.err - 0.5,
+                                                y = err - 0.5,
                                                 name = 'huber_loss')
 
                 with tf.variable_scope('optim'):
@@ -365,9 +365,9 @@ class DeepDuelLearner(Learner):
                                                 name = 'q_pred')
                     self.diff = self.q_pred - self.targets_tensor
                     err = tf.abs(self.diff)
-                    self.hub_loss = tf.where(condition = self.err < 1.0,
+                    self.hub_loss = tf.where(condition = err < 1.0,
                                                 x = 0.5 * tf.square(self.diff),
-                                                y = self.err - 0.5,
+                                                y = err - 0.5,
                                                 name = 'huber_loss')
 
                 with tf.variable_scope('optim'):
