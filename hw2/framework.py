@@ -120,6 +120,8 @@ class Train:
                 self.light_eval()
             if self.sim_cnt % self.sim_per_record_save == 0:
                 self.record_save()
+            if self.sim_cnt % (self.total_sim // 1000) == 0:
+                print current_time(), 'Sim', self.sim_cnt
         
         if self.sim_cnt % self.sim_per_record_save != 0:
             self.record_save()

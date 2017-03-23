@@ -33,7 +33,7 @@ class AtariGame:
         self.env = gym.make(atari_game)
         self.env.seed(prng_seed)
         if record_dir is not None:
-            self.env = gym.wrappers.Monitor(self.env, record_dir, force=True)
+            self.env = gym.wrappers.Monitor(self.env, record_dir, write_upon_reset=True, force=True)
         self.action_n = self.env.action_space.n
     
     def reset(self):
