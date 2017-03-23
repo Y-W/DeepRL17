@@ -6,6 +6,7 @@ import tensorflow as tf
 gradient_momentum = 0.95
 squared_grad_mom = 0.95
 min_sqr_grad = 0.01
+summary_log_freq = 100
 
 
 class Learner:
@@ -20,12 +21,19 @@ class Learner:
 
     def update_batch(self, input_batch, action_batch, target_batch):
         assert self.learning_rate is not None
-        _, summary = self.sess.run([self.train_op, self.summary_op],
-                      feed_dict = {self.input_tensor:input_batch,
-                                   self.actions_tensor:action_batch,
-                                   self.targets_tensor:target_batch})
-        self.log_writer.add_summary(summary, global_step=self.udpate_step)
         self.udpate_step += 1
+        if self.udpate_step % summary_log_freq == 0:
+            _, summary = self.sess.run([self.train_op, self.summary_op],
+                        feed_dict = {self.input_tensor:input_batch,
+                                    self.actions_tensor:action_batch,
+                                    self.targets_tensor:target_batch})
+            self.log_writer.add_summary(summary, global_step=self.udpate_step)
+        else:
+            _, summary = self.sess.run([self.train_op, self.summary_op],
+                        feed_dict = {self.input_tensor:input_batch,
+                                    self.actions_tensor:action_batch,
+                                    self.targets_tensor:target_batch})
+        
     
     def save(self, filePath):
         assert self.learning_rate is not None
