@@ -8,7 +8,7 @@ from util import list2NumpyBatches, numpyBatches2list
 
 frame_size = (105, 80)
 past_frame = 4
-atari_game = 'SpaceInvaders-v0' # 'Enduro-v0'
+atari_game = 'SpaceInvadersDeterministic-v3' # 'SpaceInvaders-v0' # 'Enduro-v0'
 action_n = 6
 
 train_hist_len = 31250
