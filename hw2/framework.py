@@ -79,7 +79,7 @@ class Train:
 
     def record_save(self):
         self.onlineQ.save(os.path.join(self.model_dir, 'model-%i.ckpt' % self.sim_cnt))
-        self.games_record(self.onlineQ.eval_batch_action)
+        # self.games_record(self.onlineQ.eval_batch_action)
 
     def info_log(self, s):
         with open(os.path.join(self.output_dir, 'log.txt'), 'a') as f:
@@ -98,7 +98,7 @@ class Train:
     def __call__(self):
         self.games_train = GameEngine_Train(batch_size, self.use_replay)
         self.games_eval = GameEngine_Eval(batch_size)
-        self.games_record = GameEngine_Recorded(os.path.join(self.output_dir, 'game_video'), batch_size)
+        # self.games_record = GameEngine_Recorded(os.path.join(self.output_dir, 'game_video'), batch_size)
 
         self.sess = tf.Session()
         game_info = self.games_train.games
@@ -129,5 +129,5 @@ class Train:
 
         self.games_train.close()
         self.games_eval.close()
-        self.games_record.close()
+        # self.games_record.close()
         self.sess.close()
