@@ -31,7 +31,7 @@ def main():
     if not os.path.exists(recordPath):
         os.makedirs(recordPath)
 
-    game = GameEngine_Recorded(record_dir, 1)
+    game = GameEngine_Recorded(recordPath, 1)
 
     sess = tf.Session()
     learner = learnerClass('online_Q', sess, game.games.state_shape, game.games.action_n, 1, None, None)
