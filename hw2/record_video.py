@@ -14,7 +14,7 @@ def main():
     ques = sys.argv[1]
     assert ques in ['q2', 'q3', 'q4', 'q5', 'q6', 'q7']
     n = int(sys.argv[2])
-    print 'Question', ques, '#iter', n,
+    print 'Question', ques, '#iter', n
 
     learnerClass = LinearLeaner
     if ques in ['q5', 'q6']:
