@@ -340,7 +340,7 @@ class DeepDuelLearner(Learner):
                                                 bias_initializer = tf.constant_initializer(),
                                                 name = 'fcl1')
                         self.action_output = tf.layers.dense(inputs = self.action_fcl1,
-                                                units = 1,
+                                                units = action_n,
                                                 activation = None,
                                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                                                 bias_initializer = tf.constant_initializer(),
