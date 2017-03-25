@@ -2,6 +2,7 @@
 
 import sys
 import os
+import logging
 import tensorflow as tf
 from q_learner import LinearLeaner, DeepLearner, DeepDuelLearner
 from game_replay_parallel import GameEngine_Recorded
