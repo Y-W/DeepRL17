@@ -137,7 +137,8 @@ class LinearLeaner(Learner):
             init_op = tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
             self.sess.run(init_op)
 
-            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
+            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name),
+                                        max_to_keep=1000)
 
             self.udpate_step = 0
 
@@ -257,7 +258,8 @@ class DeepLearner(Learner):
             init_op = tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
             self.sess.run(init_op)
 
-            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
+            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name),
+                                        max_to_keep=1000)
 
             self.udpate_step = 0
 
@@ -423,6 +425,7 @@ class DeepDuelLearner(Learner):
             init_op = tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name))
             self.sess.run(init_op)
 
-            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name))
+            self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name),
+                                        max_to_keep=1000)
 
             self.udpate_step = 0
