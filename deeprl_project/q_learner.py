@@ -140,7 +140,7 @@ class DeepLearner(Learner):
                                                     units = action_n * value_n,
                                                     activation = None,
                                                     name = 'linear')
-                        self.output_tensor_large = tf.reshape(self.fcl2_large, [batch_size, action_n, value_n], name='output')
+                        self.output_tensor_large = tf.reshape(self.fcl2_large, [batch_size_large, action_n, value_n], name='output')
                         self.output_sum_tensor_large = tf.reduce_sum(self.output_tensor_large, axis=2, name='action_output')
                         self.best_action_large = tf.to_int32(tf.argmax(self.output_sum_tensor_large, axis=1), name='best_action')
             
