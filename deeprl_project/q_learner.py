@@ -128,7 +128,7 @@ class DeepLearner(Learner):
                                                     activation = tf.nn.relu,
                                                     name = 'conv2')
                     with tf.variable_scope('dense_layers'):
-                        flattened_tensor_large = tf.reshape(self.conv2_large,(batch_size,-1),name='flatting') 
+                        flattened_tensor_large = tf.reshape(self.conv2_large,(batch_size_large,-1),name='flatting') 
                         self.fcl1_large = tf.layers.dense(inputs = flattened_tensor_large,
                                                 units = 256,
                                                 activation = tf.nn.relu,
