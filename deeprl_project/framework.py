@@ -106,7 +106,7 @@ class Train:
         self.games_eval = GameEngine_Eval(batch_size)
         # self.games_record = GameEngine_Recorded(os.path.join(self.output_dir, 'game_video'), batch_size)
 
-        self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+        self.sess = tf.Session()
         self.game_info = self.games_train.games
         if not self.use_targetFix:
             self.onlineQ = self.learner_class('online_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
