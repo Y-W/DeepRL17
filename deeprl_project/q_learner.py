@@ -10,11 +10,14 @@ summary_log_freq = 1000
 
 
 class Learner:
-    def __init__(self, name, sess, state_shape, action_n, value_n, batch_size, learning_rate, log_dir):
+    def __init__(self, name, sess, state_shape, action_n, value_n, batch_size, batch_size_large, learning_rate, log_dir):
         raise NotImplementedError()
 
     def eval_batch(self, input_batch):
         return self.sess.run(self.output_tensor, feed_dict = {self.input_tensor:input_batch})
+    
+    def eval_batch_large(self, input_batch):
+        return self.sess.run(self.output_tensor_large, feed_dict = {self.input_tensor_large:input_batch})
     
     def eval_batch_action(self, input_batch):
         return self.sess.run(self.best_action, feed_dict = {self.input_tensor:input_batch})
@@ -53,7 +56,7 @@ class Learner:
 
 
 class DeepLearner(Learner):
-    def __init__(self, name, sess, state_shape, action_n, value_n, batch_size, learning_rate, log_dir):
+    def __init__(self, name, sess, state_shape, action_n, value_n, batch_size, batch_size_large, learning_rate, log_dir):
         self.state_shape = state_shape
         self.action_n = action_n
         self.value_n = value_n
@@ -103,6 +106,40 @@ class DeepLearner(Learner):
                 self.output_tensor = tf.reshape(self.fcl2, [batch_size, action_n, value_n], name='output')
                 self.output_sum_tensor = tf.reduce_sum(self.output_tensor, axis=2, name='action_output')
                 self.best_action = tf.to_int32(tf.argmax(self.output_sum_tensor, axis=1), name='best_action')
+            
+            with tf.name_scope('large_eval'):
+                self.input_tensor_large = tf.placeholder(tf.float32, 
+                                            shape = (batch_size_large,) + state_shape,
+                                            name = 'input')
+                with tf.variable_scope('model', reuse=True):
+                    with tf.variable_scope('conv_layers'):
+                        self.conv1_large = tf.layers.conv2d(inputs = self.input_tensor_large,
+                                                    filters = 16,
+                                                    kernel_size= (8,8),
+                                                    strides = (4,4),
+                                                    data_format = 'channels_first',
+                                                    activation = tf.nn.relu,
+                                                    name = 'conv1')
+                        self.conv2_large = tf.layers.conv2d(inputs = self.conv1_large,
+                                                    filters = 32,
+                                                    kernel_size= (4,4),
+                                                    strides = (2,2),
+                                                    data_format = 'channels_first',
+                                                    activation = tf.nn.relu,
+                                                    name = 'conv2')
+                    with tf.variable_scope('dense_layers'):
+                        flattened_tensor_large = tf.reshape(self.conv2_large,(batch_size,-1),name='flatting') 
+                        self.fcl1_large = tf.layers.dense(inputs = flattened_tensor_large,
+                                                units = 256,
+                                                activation = tf.nn.relu,
+                                                name = 'fcl1')
+                        self.fcl2_large = tf.layers.dense(inputs = self.fcl1_large,
+                                                units = action_n * value_n,
+                                                activation = None,
+                                                name = 'linear')
+                    self.output_tensor_large = tf.reshape(self.fcl2_large, [batch_size, action_n, value_n], name='output')
+                    self.output_sum_tensor_large = tf.reduce_sum(self.output_tensor_large, axis=2, name='action_output')
+                    self.best_action_large = tf.to_int32(tf.argmax(self.output_sum_tensor_large, axis=1), name='best_action')
             
             self.model_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
             with tf.name_scope('assign_model'):

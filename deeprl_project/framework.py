@@ -61,14 +61,17 @@ class Train:
         s, act, rew, tm = self.games_train.get_trans()
         eval_batch = None
         if not self.use_targetFix:
-            eval_batch = self.onlineQ.eval_batch
+            eval_batch = self.onlineQ.eval_batch_large
         else:
-            eval_batch = self.targetQ.eval_batch
+            eval_batch = self.targetQ.eval_batch_large
+        
+        eval_input = s[:, 1:].reshape((-1,) + self.game_info.state_shape)
+        eval_output = eval_batch(eval_input).reshape((batch_size, -1) + self.game_info.state_shape)
 
         target = np.zeros(rew.shape, dtype=np.float32)
         target[:, 0] = rew[:, 0]
         for k in xrange(1, len(samp_series)):
-            net_output = eval_batch(s[:, k])
+            net_output = eval_output[:, k - 1]
             target[:, k] = discount_factor[k] * np.logical_not(tm[:, k]).astype(np.float32) \
                            * np.sum(net_output[np.arange(rew.shape[0]), act[:, k], :k], axis=1)
         
@@ -104,11 +107,11 @@ class Train:
         # self.games_record = GameEngine_Recorded(os.path.join(self.output_dir, 'game_video'), batch_size)
 
         self.sess = tf.Session()
-        game_info = self.games_train.games
-        self.onlineQ = self.learner_class('online_Q', self.sess, game_info.state_shape, game_info.action_n, samp_n, batch_size, \
+        self.game_info = self.games_train.games
+        self.onlineQ = self.learner_class('online_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
                                           learning_rate, os.path.join(self.output_dir, 'tf_log'))
         if self.use_targetFix:
-            self.targetQ = self.learner_class('target_Q', self.sess, game_info.state_shape, game_info.action_n, samp_n, batch_size, \
+            self.targetQ = self.learner_class('target_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
                                           None, None)
             self.sync()
         
