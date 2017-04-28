@@ -66,7 +66,7 @@ class Train:
             eval_batch = self.targetQ.eval_batch_large
         
         eval_input = s[:, 1:].reshape((-1,) + self.game_info.state_shape)
-        eval_output = eval_batch(eval_input).reshape((batch_size, -1) + self.game_info.state_shape)
+        eval_output = eval_batch(eval_input).reshape((batch_size, -1, self.game_info.action_n, samp_n))
 
         target = np.zeros(rew.shape, dtype=np.float32)
         target[:, 0] = rew[:, 0]
