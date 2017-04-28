@@ -108,9 +108,12 @@ class Train:
 
         self.sess = tf.Session()
         self.game_info = self.games_train.games
-        self.onlineQ = self.learner_class('online_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
-                                          learning_rate, os.path.join(self.output_dir, 'tf_log'))
-        if self.use_targetFix:
+        if not self.use_targetFix:
+            self.onlineQ = self.learner_class('online_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
+                                            learning_rate, os.path.join(self.output_dir, 'tf_log'))
+        else:
+            self.onlineQ = self.learner_class('online_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, None, \
+                                            learning_rate, os.path.join(self.output_dir, 'tf_log'))
             self.targetQ = self.learner_class('target_Q', self.sess, self.game_info.state_shape, self.game_info.action_n, samp_n, batch_size, batch_size * (samp_n - 1), \
                                           None, None)
             self.sync()
