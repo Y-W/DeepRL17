@@ -4,12 +4,10 @@ import ctypes
 import numpy as np
 import gym
 
-from util import list2NumpyBatches, numpyBatches2list
-
-frame_size = (105, 80)
-past_frame = 4
-atari_game = 'SpaceInvadersDeterministic-v3' # 'SpaceInvaders-v0' # 'Enduro-v0'
-action_n = 6
+frame_size = (2,)
+past_frame = 1
+atari_game = 'MountainCar-v0'
+action_n = 3
 
 # samp_series = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 samp_lvl = 10
@@ -21,19 +19,16 @@ train_hist_margin = max(samp_series)
 train_hist_len = train_hist_base + train_hist_margin
 
 def train_epsilon(k):
-    return max(0.1, 1.0 - (0.9 / train_hist_len) * k)
+    return 1.0 # max(0.1, 1.0 - (0.9 / train_hist_len) * k)
 def eval_epsilon(k):
-    return 0.05
+    return 1.0
 
 
 def process_frame_for_storage(f):
-    f = np.mean(f, axis=2).round().astype(np.uint8)
-    f = np.maximum(np.maximum(f[::2, ::2], f[::2, 1::2]), np.maximum(f[1::2, ::2], f[1::2, 1::2]))
-    return f
+    return f.astype(np.float32)
 
 def process_frame_for_output(f):
-    f = f.astype(np.float32) * (1.0 / 255.0)
-    return f
+    return f.astype(np.float32)
 
 
 class AtariGame:
@@ -90,10 +85,10 @@ class AtariGame_ParallelWorker(mp.Process):
         self.prng = np.random.RandomState(hash(atari_game + str(self.id)) % 4294967296)
         self.game = AtariGame(int(self.prng.randint(4294967296)), self.record_dir)
 
-        self.store_frame = np.zeros((self.history_length,) + frame_size, dtype=np.uint8)
+        self.store_frame = np.zeros((self.history_length,) + frame_size, dtype=np.float32)
         self.store_action = np.zeros((self.history_length,), dtype=np.uint8)
         self.store_reward = np.zeros((self.history_length,), dtype=np.float32)
-        self.store_step = np.zeros((self.history_length,), dtype=np.uint16)
+        self.store_step = np.zeros((self.history_length,), dtype=np.uint32)
         self.store_p = 0
 
         self.epsilon_cnt = 0
@@ -153,7 +148,7 @@ class AtariGame_ParallelWorker(mp.Process):
         self.write_state(self.trans_s[self.id, k], p)
         p = (p + 1) % self.history_length
         self.trans_action[self.id, k] = self.store_action[p]
-        self.trans_reward[self.id, k] = np.clip(self.store_reward[p], -1.0, 1.0)
+        self.trans_reward[self.id, k] = self.store_reward[p]
     
     def get_trans(self):
         assert not self.is_eval
@@ -203,11 +198,11 @@ class GameBatch_Parallel:
         self.action_n = action_n
 
         self.shared_arrs = (mp.Array(ctypes.c_int32, size, lock=False),
-                            mp.Array(ctypes.c_float, size * past_frame * frame_size[0] * frame_size[1], lock=False),
+                            mp.Array(ctypes.c_float, size * past_frame * frame_size[0], lock=False),
                             mp.Array(ctypes.c_float, size, lock=False),
                             mp.Array(ctypes.c_bool, size, lock=False))
         if not is_eval:
-            self.shared_arrs += (mp.Array(ctypes.c_float, size * samp_n * past_frame * frame_size[0] * frame_size[1], lock=False),
+            self.shared_arrs += (mp.Array(ctypes.c_float, size * samp_n * past_frame * frame_size[0], lock=False),
                                  mp.Array(ctypes.c_int32, size * samp_n, lock=False),
                                  mp.Array(ctypes.c_float, size * samp_n, lock=False),
                                  mp.Array(ctypes.c_bool, size * samp_n, lock=False))
