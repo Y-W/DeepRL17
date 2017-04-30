@@ -6,9 +6,9 @@ from framework import Onp_seq
 output_dir = 'outputs/mc_onp_seq'
 learner_class = DeepLearner
 update_per_sim = 1
-sim_per_light_eval = 100
-sim_per_record_save = 1000
-total_sim = 1000
+sim_per_light_eval = 3125
+sim_per_record_save = 31250
+total_sim = 31250
 
 def main(argv=None):
     logging.disable(logging.INFO)

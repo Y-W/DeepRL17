@@ -6,9 +6,9 @@ from framework import Onp_Cotrain
 output_dir = 'outputs/mc_onp_cotrain'
 learner_class = DeepLearner
 update_per_sim = 1
-sim_per_light_eval = 1000
-sim_per_record_save = 10000
-total_sim = 10000
+sim_per_light_eval = 31250
+sim_per_record_save = 31250
+total_sim = 312500
 
 def main(argv=None):
     logging.disable(logging.INFO)
