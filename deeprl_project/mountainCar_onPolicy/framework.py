@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+import matplotlib
 import matplotlib.pyplot as plt
 
 from game_replay_parallel import action_n, samp_series, samp_n, GameEngine_Eval, GameEngine_Recorded, GameEngine_Train
@@ -43,13 +44,14 @@ class SARSA:
             os.makedirs(self.model_dir)
         
     def light_eval(self):
-        granularity = 32
+        matplotlib.rcParams.update({'font.size': 36})
+        granularity = 64
         x = np.linspace(-1.2, 0.6, granularity)
         y = np.linspace(-0.07, 0.07, granularity)
         xx, yy = np.meshgrid(x, y)
         states = np.stack((xx.reshape(-1), yy.reshape(-1)), axis=1)
 
-        fig, axes = plt.subplots(figsize=(15, 7), nrows=1, ncols=action_n)
+        fig, axes = plt.subplots(figsize=(34, 7), nrows=1, ncols=action_n, sharey=True)
         values = np.zeros((states.shape[0], action_n), dtype=np.float32)
         p = 0
         while p < states.shape[0]:
@@ -58,16 +60,30 @@ class SARSA:
             p = p + dp
 
         for a in xrange(action_n):
-            axes[a].set_title("Action %i" % a)
+            axes[a].xaxis.set_tick_params(width=2, length=8, direction='out')
+            axes[a].set_xticks([-1.0, -0.5, 0.0, 0.5])
+            axes[a].xaxis.set_ticks_position('bottom')
+            if a == 0:
+                axes[a].yaxis.set_tick_params(width=2, length=8, direction='out')
+                axes[a].set_yticks([-0.5, 0.0, 0.5])
+                axes[a].yaxis.set_ticks_position('left')
+            if a == 0:
+                axes[a].set_title("Go to the left", y=1.05)
+            if a == 1:
+                axes[a].set_title("Do nothing", y=1.05)
+            if a == 2:
+                axes[a].set_title("Go to the right", y=1.05)
             mp = axes[a].imshow(values[:, a].reshape(granularity, granularity),
                                 extent=(-1.2, 0.6, 0.7, -0.7),
-                                interpolation='bilinear', vmin=np.min(values[:, a])-0.1,
-                                vmax=np.max(values[:, a])+0.1)
+                                interpolation='bilinear', vmin=np.min(values)-0.1,
+                                vmax=np.max(values)+0.1)
             axes[a].set_xlabel('position')
             axes[0].set_ylabel('velosity * 10')
 
         fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        cbar_ax = fig.add_axes([0.85, -0.01, 0.04, 1.0])
+        cbar_ax.xaxis.set_tick_params(width=2, length=8, direction='out')
+        cbar_ax.yaxis.set_tick_params(width=2, length=8, direction='out')
         fig.colorbar(mp, cax=cbar_ax)
         fig_path = os.path.join(self.output_dir, 'qvalues-%i.png' % self.sim_cnt)
         fig.savefig(fig_path, bbox_inches='tight')
@@ -156,13 +172,14 @@ class Onp_Cotrain:
             os.makedirs(self.model_dir)
         
     def light_eval(self):
-        granularity = 32
+        matplotlib.rcParams.update({'font.size': 36})
+        granularity = 64
         x = np.linspace(-1.2, 0.6, granularity)
         y = np.linspace(-0.07, 0.07, granularity)
         xx, yy = np.meshgrid(x, y)
         states = np.stack((xx.reshape(-1), yy.reshape(-1)), axis=1)
 
-        fig, axes = plt.subplots(figsize=(15, 7), nrows=1, ncols=action_n)
+        fig, axes = plt.subplots(figsize=(34, 7), nrows=1, ncols=action_n, sharey=True)
         values = np.zeros((states.shape[0], action_n), dtype=np.float32)
         p = 0
         while p < states.shape[0]:
@@ -171,16 +188,30 @@ class Onp_Cotrain:
             p = p + dp
 
         for a in xrange(action_n):
-            axes[a].set_title("Action %i" % a)
+            axes[a].xaxis.set_tick_params(width=2, length=8, direction='out')
+            axes[a].set_xticks([-1.0, -0.5, 0.0, 0.5])
+            axes[a].xaxis.set_ticks_position('bottom')
+            if a == 0:
+                axes[a].yaxis.set_tick_params(width=2, length=8, direction='out')
+                axes[a].yaxis.set_ticks_position('left')
+                axes[a].set_yticks([-0.5, 0.0, 0.5])
+            if a == 0:
+                axes[a].set_title("Go to the left", y=1.05)
+            if a == 1:
+                axes[a].set_title("Do nothing", y=1.05)
+            if a == 2:
+                axes[a].set_title("Go to the right", y=1.05)
             mp = axes[a].imshow(values[:, a].reshape(granularity, granularity),
                                 extent=(-1.2, 0.6, 0.7, -0.7),
-                                interpolation='bilinear', vmin=np.min(values[:, a])-0.1,
-                                vmax=np.max(values[:, a])+0.1)
+                                interpolation='bilinear', vmin=np.min(values)-0.1,
+                                vmax=np.max(values)+0.1)
             axes[a].set_xlabel('position')
             axes[0].set_ylabel('velosity * 10')
 
         fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        cbar_ax = fig.add_axes([0.85, -0.01, 0.04, 1.0])
+        cbar_ax.xaxis.set_tick_params(width=2, length=8, direction='out')
+        cbar_ax.yaxis.set_tick_params(width=2, length=8, direction='out')
         fig.colorbar(mp, cax=cbar_ax)
         fig_path = os.path.join(self.output_dir, 'qvalues-%i.png' % self.sim_cnt)
         fig.savefig(fig_path, bbox_inches='tight')
@@ -280,13 +311,14 @@ class Onp_seq_step:
             os.makedirs(self.model_dir)
         
     def light_eval(self):
-        granularity = 32
+        matplotlib.rcParams.update({'font.size': 36})
+        granularity = 64
         x = np.linspace(-1.2, 0.6, granularity)
         y = np.linspace(-0.07, 0.07, granularity)
         xx, yy = np.meshgrid(x, y)
         states = np.stack((xx.reshape(-1), yy.reshape(-1)), axis=1)
 
-        fig, axes = plt.subplots(figsize=(15, 7), nrows=1, ncols=action_n)
+        fig, axes = plt.subplots(figsize=(34, 7), nrows=1, ncols=action_n, sharey=True)
         values = np.zeros((states.shape[0], action_n), dtype=np.float32)
         p = 0
         while p < states.shape[0]:
@@ -295,16 +327,30 @@ class Onp_seq_step:
             p = p + dp
 
         for a in xrange(action_n):
-            axes[a].set_title("Action %i" % a)
+            axes[a].xaxis.set_tick_params(width=2, length=8, direction='out')
+            axes[a].set_xticks([-1.0, -0.5, 0.0, 0.5])
+            axes[a].xaxis.set_ticks_position('bottom')
+            if a == 0:
+                axes[a].yaxis.set_tick_params(width=2, length=8, direction='out')
+                axes[a].yaxis.set_ticks_position('left')
+                axes[a].set_yticks([-0.5, 0.0, 0.5])
+            if a == 0:
+                axes[a].set_title("Go to the left", y=1.05)
+            if a == 1:
+                axes[a].set_title("Do nothing", y=1.05)
+            if a == 2:
+                axes[a].set_title("Go to the right", y=1.05)
             mp = axes[a].imshow(values[:, a].reshape(granularity, granularity),
                                 extent=(-1.2, 0.6, 0.7, -0.7),
-                                interpolation='bilinear', vmin=np.min(values[:, a])-0.1,
-                                vmax=np.max(values[:, a])+0.1)
+                                interpolation='bilinear', vmin=np.min(values)-0.1,
+                                vmax=np.max(values)+0.1)
             axes[a].set_xlabel('position')
             axes[0].set_ylabel('velosity * 10')
 
         fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        cbar_ax = fig.add_axes([0.85, -0.01, 0.04, 1.0])
+        cbar_ax.xaxis.set_tick_params(width=2, length=8, direction='out')
+        cbar_ax.yaxis.set_tick_params(width=2, length=8, direction='out')
         fig.colorbar(mp, cax=cbar_ax)
         fig_path = os.path.join(self.output_dir, 'qvalues-%i.png' % self.sim_cnt)
         fig.savefig(fig_path, bbox_inches='tight')
