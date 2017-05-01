@@ -12,11 +12,11 @@ atari_game = 'SpaceInvadersDeterministic-v3' # 'SpaceInvaders-v0' # 'Enduro-v0'
 action_n = 6
 
 # samp_series = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-samp_lvl = 10
+samp_lvl = 4
 samp_series = [0] + [int(2**k) for k in xrange(samp_lvl)]
 samp_n = len(samp_series)
 
-train_hist_base = 31250
+train_hist_base = 10000
 train_hist_margin = max(samp_series)
 train_hist_len = train_hist_base + train_hist_margin
 
