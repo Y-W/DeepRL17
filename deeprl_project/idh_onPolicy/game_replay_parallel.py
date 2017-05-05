@@ -283,7 +283,7 @@ class GameEngine:
     
     def samp_trans(self, dist):
         assert self.trans_max_count >= 2
-        self.get_trans([0, dist])
+        return self.get_trans([0, dist])
     
     def close(self):
         self.games.close()

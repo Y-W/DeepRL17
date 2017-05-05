@@ -1,27 +1,31 @@
 import numpy as np
 
-class BinBatchLearner:
-    def __init__(self, preprosessor, bin_shape):
+class BinIncLearner:
+    def __init__(self, bin_fn, bin_shape, output_shape, alpha):
         self.bin_shape = bin_shape
-        self.table = np.zeros(self.bin_shape, dtype=np.float_)
-        self.preprosessor = preprosessor
-
-    def train_batch(self, X, Y):
-        self.table[:] = 0.0
-        tmp_cnt = np.zeros(self.bin_shape, dtype=np.int_)
-        for k, x in enumerate(self.preprosessor(X)):
-            self.table[x] += Y[k]
-            tmp_cnt[x] += 1
-
-        tmp_avg = np.mean(self.table)
-        self.table[:] += (tmp_cnt == 0) * tmp_avg
-        tmp_cnt[:] += (tmp_cnt == 0)
-
-        self.table[:] /= tmp_cnt
+        self.output_shape = output_shape
+        self.bin_fn = bin_fn
+        self.alpha = alpha
+        self.bin_table = np.zeros(self.bin_shape + self.output_shape, dtype=np.float_)
     
-    def eval_batch(self, dataset):
-        result = []
-        for x in self.preprosessor(X):
-            result.append(self.table[x])
-        return result
+    def reset(self):
+        self.bin_table[...] = 0.0
 
+    def update_batch(self, X, A, Y):
+        assert X.shape[0] == Y.shape[0] and X.shape[0] == A.shape[0] \
+               and Y.shape[1:] == self.output_shape
+        for k in xrange(X.shape[0]):
+            bin_idx = self.bin_fn(X[k])
+            self.bin_table[bin_idx][A[k]] += self.alpha * (Y[k] - self.bin_table[bin_idx][A[k]])
+    
+    def _eval(self, bin_idx):
+        return self.bin_table[bin_idx]
+
+    def eval(self, x):
+        return self._eval(self.bin_fn(x))
+
+    def eval_batch(self, X):
+        result = np.zeros((X.shape[0],) + self.output_shape, dtype=np.float_)
+        for k in xrange(X.shape[0]):
+            result[k] = self.eval(X[i])
+        return result

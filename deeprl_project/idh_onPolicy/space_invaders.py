@@ -27,7 +27,7 @@ class SpaceInvaders(GameEngine):
             trans_reward_processor = clip_reward_fn
         else:
             trans_reward_processor = null_fn
-        super(MountainCar, self).__init__(
+        super(SpaceInvaders, self).__init__(
             parallel_size, atari_game, None,
             past_frame, 
             process_frame_for_storage, frame_size, np.uint8, 
