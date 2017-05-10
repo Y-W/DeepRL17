@@ -27,7 +27,7 @@ class SARSA:
         for _ in xrange(n):
             self.step()
 
-class IDH:
+class IDH_STEP:
     def __init__(self,
                  game_engine,
                  batch_leaner,
@@ -40,7 +40,7 @@ class IDH:
         self.policy_fn = policy_fn
         self.eval_fn = eval_fn
         self.step_away = step_away
-        self.decay = self.decay
+        self.decay = decay
     
     def add_batch(self):
         self.game_engine(self.policy_fn)
@@ -56,4 +56,25 @@ class IDH:
     
     def loop(self, n):
         for _ in xrange(n):
-            self.step()
+            self.add_batch()
+
+class IDH_BASE:
+    def __init__(self,
+                 game_engine,
+                 batch_leaner,
+                 policy_fn):
+        self.game_engine = game_engine
+        self.batch_leaner = batch_leaner
+        self.policy_fn = policy_fn
+    
+    def add_batch(self):
+        self.game_engine(self.policy_fn)
+        trans_s, trans_action, trans_reward, trans_terminal = self.game_engine.samp_trans(0)
+        s0 = trans_s[:, 0]
+        a0 = trans_action[:, 0]
+        target = trans_reward[:, 0]
+        self.batch_leaner.add_batch(s0, a0, target)
+    
+    def loop(self, n):
+        for _ in xrange(n):
+            self.add_batch()

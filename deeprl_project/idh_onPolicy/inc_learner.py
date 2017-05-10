@@ -12,8 +12,7 @@ class BinIncLearner:
         self.bin_table[...] = 0.0
 
     def update_batch(self, X, A, Y):
-        assert X.shape[0] == Y.shape[0] and X.shape[0] == A.shape[0] \
-               and Y.shape[1:] == self.output_shape
+        assert X.shape[0] == Y.shape[0] and X.shape[0] == A.shape[0]
         for k in xrange(X.shape[0]):
             bin_idx = self.bin_fn(X[k])
             self.bin_table[bin_idx][A[k]] += self.alpha * (Y[k] - self.bin_table[bin_idx][A[k]])
@@ -27,5 +26,5 @@ class BinIncLearner:
     def eval_batch(self, X):
         result = np.zeros((X.shape[0],) + self.output_shape, dtype=np.float_)
         for k in xrange(X.shape[0]):
-            result[k] = self.eval(X[i])
+            result[k] = self.eval(X[k])
         return result

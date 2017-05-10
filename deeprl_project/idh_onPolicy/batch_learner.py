@@ -18,10 +18,9 @@ class BinBatchLearner:
         self.bin_sum[...] = 0.0
 
     def add_batch(self, X, A, Y):
-        self.reset()
         assert X.shape[0] == Y.shape[0] and X.shape[0] == A.shape[0]
         for k in xrange(X.shape[0]):
-            bin_idx = self.bin_fn(X[i])
+            bin_idx = self.bin_fn(X[k])
             self.bin_sum[bin_idx][A[k]] += Y[k]
             self.bin_cnt[bin_idx][A[k]] += 1
     
@@ -34,5 +33,5 @@ class BinBatchLearner:
     def eval_batch(self, X):
         result = np.zeros((X.shape[0],) + self.output_shape, dtype=np.float_)
         for k in xrange(X.shape[0]):
-            result[k] = self.eval(X[i])
+            result[k] = self.eval(X[k])
         return result

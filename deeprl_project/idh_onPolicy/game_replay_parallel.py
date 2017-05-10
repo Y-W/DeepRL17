@@ -7,7 +7,7 @@ import gym
 from operator import mul
 
 
-class AtariGame:
+class AtariGame(object):
     def __init__(self, game_name, prng_seed, record_dir):
         self.env = gym.make(game_name)
         self.env.seed(prng_seed)
@@ -169,7 +169,7 @@ class AtariGame_ParallelWorker(mp.Process):
             else:
                 raise NotImplementedError()
 
-class GameBatch_Parallel:
+class GameBatch_Parallel(object):
     def __init__(self, size, game_name, record_dir,
                  frame_accum, 
                  frame_storage_processor, frame_storage_shape, frame_storage_type, 
@@ -243,13 +243,12 @@ class GameBatch_Parallel:
             p.recv()
     
     def get_trans(self):
-        assert not self.is_eval
         for p in self.pipes:
             p.send(2)
         for p in self.pipes:
             p.recv()
 
-class GameEngine:
+class GameEngine(object):
     def __init__(self, size, game_name, record_dir,
                  frame_accum, 
                  frame_storage_processor, frame_storage_shape, frame_storage_type, 
