@@ -32,6 +32,6 @@ framework = SARSA(games, inc_learner, random_action, DECAY)
 
 for v in xrange(vis_times):
     framework.loop(train_times)
-    visualize_states(output_path + 'states_%i.png' % v, inc_learner.eval_batch)
+    visualize_states(output_path + 'states_%i.png' % v, inc_learner.eval_batch_no_default)
 
 games.close()

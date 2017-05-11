@@ -2,9 +2,6 @@ from __future__ import division
 
 import numpy as np
 
-def safe_div(a, b):
-    return a / np.maximum(b, 1.0)
-
 class BinBatchLearner:
     def __init__(self, bin_fn, bin_shape, output_shape):
         self.bin_shape = bin_shape
@@ -24,14 +21,20 @@ class BinBatchLearner:
             self.bin_sum[bin_idx][A[k]] += Y[k]
             self.bin_cnt[bin_idx][A[k]] += 1
     
-    def _eval(self, bin_idx):
-        return safe_div(self.bin_sum[bin_idx], self.bin_cnt[bin_idx])
+    def _eval(self, bin_idx, no_default=False):
+        if not no_default:
+            return np.where(self.bin_cnt[bin_idx] > 0, self.bin_sum[bin_idx] / self.bin_cnt[bin_idx], 0.0)
+        else:
+            return np.where(self.bin_cnt[bin_idx] > 0, self.bin_sum[bin_idx] / self.bin_cnt[bin_idx], np.nan)
 
-    def eval(self, x):
-        return self._eval(self.bin_fn(x))
+    def eval(self, x, no_default=False):
+        return self._eval(self.bin_fn(x), no_default=no_default)
 
-    def eval_batch(self, X):
+    def eval_batch(self, X, no_default=False):
         result = np.zeros((X.shape[0],) + self.output_shape, dtype=np.float_)
         for k in xrange(X.shape[0]):
-            result[k] = self.eval(X[k])
+            result[k] = self.eval(X[k], no_default=no_default)
         return result
+    
+    def eval_batch_no_default(self, X):
+        return self.eval_batch(X, no_default=True)

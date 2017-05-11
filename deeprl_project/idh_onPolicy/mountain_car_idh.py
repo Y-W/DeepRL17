@@ -32,77 +32,77 @@ horizon=1
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_BASE(games, batch_learner, random_action)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=2
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=4
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=8
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=16
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=32
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=64
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=128
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=256
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=512
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 horizon=1024
 eval_tmp = batch_learner.eval_batch
 batch_learner = BinBatchLearner(Discretization(state_bounds, bin_shape), bin_shape, (action_n,))
 framework = IDH_STEP(games, batch_learner, random_action, eval_tmp, horizon//2, DECAY)
 framework.loop(train_times)
-visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch)
+visualize_states(output_path + 'states_%i.png' % horizon, batch_learner.eval_batch_no_default)
 
 
 games.close()
