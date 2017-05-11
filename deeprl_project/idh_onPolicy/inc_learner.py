@@ -22,7 +22,7 @@ class BinIncLearner:
     
     def _eval(self, bin_idx, no_default=False):
         if not no_default:
-            return np.where(self.bin_cnt[bin_idx] > 0.0, self.bin_table[bin_idx] / self.bin_cnt[bin_idx], 0.0)
+            return np.where(self.bin_cnt[bin_idx] > 0.0, self.bin_table[bin_idx], 0.0)
         else:
             return np.where(self.bin_cnt[bin_idx] > 0.0, self.bin_table[bin_idx] / self.bin_cnt[bin_idx], np.nan)
 
