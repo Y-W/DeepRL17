@@ -56,12 +56,10 @@ def visualize_states(imgPath, eval_batch_fn, batch_size=32, granularity=64):
             axes[a].set_title("Go to the right", y=1.05)
         value_displayed = values[:, a].reshape(granularity, granularity)
         value_displayed = np.ma.array(value_displayed, mask=np.isnan(value_displayed))
-        cmap = plt.cm.jet
-        cmap.set_bad('grey', 1.)
         mp = axes[a].imshow(value_displayed,
                             extent=(-1.2, 0.6, 0.7, -0.7),
-                            interpolation='nearest', vmin=np.min(values)-0.1,
-                            vmax=np.max(values)+0.1, cmap=cmap)
+                            interpolation='nearest', vmin=np.min(value_displayed)-0.1,
+                            vmax=np.max(value_displayed)+0.1)
         axes[a].set_xlabel('position')
         axes[0].set_ylabel('velosity * 10')
 
